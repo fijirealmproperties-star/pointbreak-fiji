@@ -21,7 +21,7 @@ interface ServerContextValue {
 const ServerContext = createContext<ServerContextValue | null>(null);
 
 export function ServerProvider({ children }: { children: React.ReactNode }) {
-  const [serverUrl, setServerUrlState] = useState("http://10.0.2.2:3001");
+  const [serverUrl, setServerUrlState] = useState("https://edinburgh-behind-finder-promotion.trycloudflare.com");
   const [configured, setConfigured] = useState(false);
   const [connected, setConnected] = useState(false);
   const [checking, setChecking] = useState(false);

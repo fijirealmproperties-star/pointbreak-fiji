@@ -71,16 +71,15 @@ export function AuthScreen() {
 
   const doLogin = async () => {
     setError(null);
-    if (!phone || !password) {
-      setError("Enter your phone number and password.");
+    if (!phone) {
+      setError("Enter your phone number.");
       return;
     }
     setLoading(true);
     try {
-      const data = await api.post<StoredSession>("/api/auth/login", {
-        phone,
-        password,
-      });
+      const body: Record<string, string> = { phone };
+      if (password) body.password = password;
+      const data = await api.post<StoredSession>("/api/auth/login", body);
       finish(data);
     } catch (e) {
       setError((e as Error).message);
@@ -301,11 +300,11 @@ export function AuthScreen() {
                 <Text style={styles.link}>New here? Create account</Text>
               </Pressable>
               {tab === "rider" ? (
-                <Pressable onPress={() => demoLogin("+6799990001")} style={styles.demoBtn}>
+                <Pressable onPress={() => demoLogin("+6798720502")} style={styles.demoBtn}>
                   <Text style={styles.demoText}>⚡ Demo rider login (no password)</Text>
                 </Pressable>
               ) : (
-                <Pressable onPress={() => demoLogin("+6799990002")} style={styles.demoBtn}>
+                <Pressable onPress={() => demoLogin("+6799283764")} style={styles.demoBtn}>
                   <Text style={styles.demoText}>⚡ Demo driver login (no password)</Text>
                 </Pressable>
               )}
