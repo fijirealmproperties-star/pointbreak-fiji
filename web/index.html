@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PointBreak Rides Fiji — Island Ride Hailing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<!-- ═══════════ SPLASH SCREEN ═══════════ -->
+<div id="splash" class="splash active">
+  <div class="splash-bg">
+    <div class="ocean-layer"></div>
+    <div class="island-silhouette"></div>
+    <div class="palm-tree palm-1"></div>
+    <div class="palm-tree palm-2"></div>
+    <div class="sun-glow"></div>
+    <div class="clouds">
+      <div class="cloud c1"></div>
+      <div class="cloud c2"></div>
+      <div class="cloud c3"></div>
+    </div>
+    <div class="wave wave1"></div>
+    <div class="wave wave2"></div>
+    <div class="wave wave3"></div>
+    <div class="birds">
+      <div class="bird b1">〰</div>
+      <div class="bird b2">〰</div>
+      <div class="bird b3">〰</div>
+    </div>
+  </div>
+  <div class="splash-content">
+    <div class="splash-logo">
+      <span class="logo-icon">🏄</span>
+      <h1>PointBreak</h1>
+      <h2>Rides Fiji</h2>
+    </div>
+    <p class="splash-tagline">Navigate the islands. Ride the waves.<br>Discover Fiji's paradise.</p>
+    <div class="splash-loading">
+      <div class="loader-wave">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <p class="loading-text">Loading paradise...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ AUTH SCREEN ═══════════ -->
+<div id="auth-screen" class="screen">
+  <div class="auth-bg">
+    <div class="tropical-overlay"></div>
+  </div>
+  <div class="auth-container">
+    <div class="auth-header">
+      <span class="auth-logo">🏄</span>
+      <h1>PointBreak<span>Rides</span></h1>
+      <p class="auth-subtitle">Your island transport companion</p>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="showAuthTab('login')">Login</button>
+        <button class="auth-tab" onclick="showAuthTab('signup')">Sign Up</button>
+      </div>
+      <button onclick="openCountrySelector()" style="background:rgba(0,180,216,0.1);border:1px solid rgba(0,180,216,0.2);border-radius:999px;padding:6px 12px;font-size:.8rem;cursor:pointer;color:var(--accent)">🌍 Country</button>
+    </div>
+
+    <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+      <div class="input-group">
+        <label>Phone Number</label>
+        <div class="phone-input">
+          <span class="country-code">+679</span>
+          <input type="tel" id="login-phone" placeholder="999 0001" required>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter password">
+        <small class="input-hint">Leave blank for demo accounts</small>
+      </div>
+      <button type="submit" class="btn-primary btn-full">
+        <span>Bula! Let's Ride</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-7-7l7 7-7 7"/></svg>
+      </button>
+      <div class="demo-accounts">
+        <p>Quick Demo Access</p>
+        <button type="button" class="btn-demo" onclick="demoLogin('rider')">
+          <span>🧑</span> Ride as Passenger
+        </button>
+        <button type="button" class="btn-demo btn-demo-driver" onclick="demoLogin('driver')">
+          <span>🚗</span> Drive for PointBreak
+        </button>
+      </div>
+    </form>
+
+    <form id="signup-form" class="auth-form hidden" onsubmit="handleSignup(event)">
+      <div class="input-group">
+        <label>Full Name</label>
+        <input type="text" id="signup-name" placeholder="Your name" required>
+      </div>
+      <div class="input-group">
+        <label>Phone Number</label>
+        <div class="phone-input">
+          <span class="country-code">+679</span>
+          <input type="tel" id="signup-phone" placeholder="999 0001" required>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Email (optional)</label>
+        <input type="email" id="signup-email" placeholder="you@email.com">
+      </div>
+      <div class="input-group">
+        <label>🏠 Where do you live?</label>
+        <select id="signup-home-zone">
+          <option value="">Select your area</option>
+          <option value="nadi">Nadi</option>
+          <option value="denarau">Denarau Island</option>
+          <option value="suva">Suva</option>
+          <option value="lautoka">Lautoka</option>
+          <option value="coral-coast">Coral Coast</option>
+          <option value="mamanuca">Mamanuca Islands</option>
+          <option value="yasawa">Yasawa Islands</option>
+          <option value="vanua-levu">Vanua Levu</option>
+          <option value="taveuni">Taveuni</option>
+          <option value="kadavu">Kadavu</option>
+          <option value="beqa">Beqa</option>
+          <option value="ovalau">Ovalau</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>📍 Home address / landmark</label>
+        <input type="text" id="signup-home-addr" placeholder="e.g. Fiji Marriott Resort, Tokatoka Hotel">
+      </div>
+      <div class="input-group">
+        <label>🏢 Work or school (optional)</label>
+        <input type="text" id="signup-work" placeholder="e.g. Tappoo City, Nadi Hospital">
+      </div>
+      <div class="input-group">
+        <label>⭐ Frequent destination (optional)</label>
+        <select id="signup-fav-loc">
+          <option value="">Where do you go often?</option>
+          <option value="nadi-airport">✈️ Nadi International Airport</option>
+          <option value="denarau-marina">⛵ Denarau Marina</option>
+          <option value="port-denarau">🚢 Port Denarau</option>
+          <option value="nadi-town">🏙️ Nadi Town Centre</option>
+          <option value="nadi-market">🏪 Nadi Municipal Market</option>
+          <option value="suva-city">🏛️ Suva City Centre</option>
+          <option value="mamanucas">🏝️ Mamanuca Islands</option>
+          <option value="yasawa">🏝️ Yasawa Islands</option>
+          <option value="naisoso">🏝️ Naisoso Island</option>
+        </select>
+      </div>
+      <div class="role-select">
+        <label>I want to</label>
+        <div class="role-cards">
+          <div class="role-card active" onclick="selectRole('rider')" data-role="rider">
+            <span class="role-icon">🧑</span>
+            <span class="role-label">Ride</span>
+            <span class="role-desc">Book island transport</span>
+          </div>
+          <div class="role-card" onclick="openDriverApplication()" data-role="driver">
+            <span class="role-icon">🚗</span>
+            <span class="role-label">Drive</span>
+            <span class="role-desc">Earn with PointBreak</span>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary btn-full">
+        <span>Create Account</span>
+      </button>
+    </form>
+
+    <!-- ═══════════ DRIVER APPLICATION FORM ═══════════ -->
+    <div id="driver-app-form" class="auth-form hidden">
+      <div style="text-align:center;margin-bottom:8px">
+        <div style="font-size:2rem">🚗</div>
+        <h3 style="margin:4px 0;color:var(--accent)">Drive for PointBreak</h3>
+        <p style="font-size:.75rem;color:var(--text-muted)">Fill in your details. Admin will review your application.</p>
+      </div>
+      <div class="driver-app-section">
+        <h4 class="driver-app-heading">👤 Personal Info</h4>
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="da-name" placeholder="Your full name" required>
+        </div>
+        <div class="input-group">
+          <label>Phone Number</label>
+          <div class="phone-input">
+            <span class="country-code">+679</span>
+            <input type="tel" id="da-phone" placeholder="999 0001" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="da-email" placeholder="you@email.com">
+        </div>
+        <div class="input-group">
+          <label>Date of Birth</label>
+          <input type="date" id="da-dob" required>
+        </div>
+        <div class="input-group">
+          <label>Home Address</label>
+          <input type="text" id="da-address" placeholder="Street, Town, Fiji" required>
+        </div>
+      </div>
+      <div class="driver-app-section">
+        <h4 class="driver-app-heading">🚗 Vehicle Details</h4>
+        <div class="input-group">
+          <label>Transport Type</label>
+          <select id="da-mode" required>
+            <option value="land">🚗 Land Vehicle</option>
+            <option value="sea">🚤 Sea / Boat</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Vehicle Type</label>
+          <select id="da-vehicle-type" required>
+            <option value="bula">🚙 Bula Ride (Sedan)</option>
+            <option value="taxi">🚕 Island Taxi (Comfortable)</option>
+            <option value="suv">🚐 Resort Transfer (SUV/Van)</option>
+            <option value="bula_bus">🚌 Bula Bus (Minibus)</option>
+            <option value="water_taxi">🚤 Water Taxi</option>
+            <option value="ferry">⛴️ Island Ferry</option>
+            <option value="charter">🛥️ Island Charter</option>
+            <option value="catamaran">⛵ Pacific Catamaran</option>
+          </select>
+        </div>
+        <div class="input-row">
+          <div class="input-group">
+            <label>Make</label>
+            <input type="text" id="da-make" placeholder="Toyota, Honda...">
+          </div>
+          <div class="input-group">
+            <label>Model</label>
+            <input type="text" id="da-model" placeholder="HiAce, Hilux...">
+          </div>
+        </div>
+        <div class="input-row">
+          <div class="input-group">
+            <label>Year</label>
+            <input type="number" id="da-year" placeholder="2020" min="1990" max="2027">
+          </div>
+          <div class="input-group">
+            <label>Colour</label>
+            <input type="text" id="da-color" placeholder="White, Silver...">
+          </div>
+        </div>
+        <div class="input-group">
+          <label>License Plate Number</label>
+          <input type="text" id="da-plate" placeholder="e.g. AB 1234" required>
+        </div>
+        <div class="input-group">
+          <label>Seating Capacity</label>
+          <input type="number" id="da-capacity" placeholder="4" min="1" max="50" value="4">
+        </div>
+      </div>
+      <div class="driver-app-section">
+        <h4 class="driver-app-heading">🪪 Driving License</h4>
+        <div class="input-group">
+          <label>License Number</label>
+          <input type="text" id="da-license" placeholder="FJ DL-XXXXXXXX" required>
+        </div>
+        <div class="input-group">
+          <label>License Expiry Date</label>
+          <input type="date" id="da-license-expiry" required>
+        </div>
+      </div>
+      <div class="driver-app-section">
+        <h4 class="driver-app-heading">🛡️ Vehicle Insurance</h4>
+        <div class="input-group">
+          <label>Insurance Provider</label>
+          <input type="text" id="da-insurance-provider" placeholder="e.g. BPH, Tower, FCCI">
+        </div>
+        <div class="input-group">
+          <label>Policy Number</label>
+          <input type="text" id="da-insurance-policy" placeholder="Policy #">
+        </div>
+        <div class="input-group">
+          <label>Insurance Expiry Date</label>
+          <input type="date" id="da-insurance-expiry">
+        </div>
+      </div>
+      <div class="driver-app-section">
+        <h4 class="driver-app-heading">📋 Additional Info</h4>
+        <div class="input-group">
+          <label>Years of Driving Experience</label>
+          <input type="number" id="da-experience" placeholder="5" min="1" max="50">
+        </div>
+        <div class="input-group">
+          <label>Preferred Zones (comma separated)</label>
+          <input type="text" id="da-zones" placeholder="e.g. Nadi, Denarau, Mamanuca">
+        </div>
+        <div class="input-group">
+          <label>Anything else?</label>
+          <textarea id="da-notes" rows="2" placeholder="Additional notes for admin..."></textarea>
+        </div>
+      </div>
+      <div style="padding:10px 16px;background:rgba(0,180,216,0.08);border-radius:8px;margin:8px 0">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--text-muted);cursor:pointer">
+          <input type="checkbox" id="da-terms" style="margin-top:2px" required>
+          I confirm all information is accurate and I have a valid Fiji driving license and vehicle insurance.
+        </label>
+      </div>
+      <button type="button" class="btn-primary btn-full" onclick="submitDriverApplication()">
+        <span>Submit Application</span>
+      </button>
+      <button type="button" class="btn-secondary btn-full" onclick="closeDriverApplication()" style="margin-top:8px">
+        <span>Back to Sign Up</span>
+      </button>
+    </div>
+
+    <p class="auth-footer">Serving Nadi, Suva, Coral Coast & all Fiji islands</p>
+  </div>
+</div>
+
+<!-- ═══════════ MAIN APP ═══════════ -->
+<div id="app" class="screen hidden">
+
+  <!-- PULL TO REFRESH -->
+  <div id="pull-refresh" class="pull-refresh">
+    <div class="pull-refresh-inner">
+      <div class="pull-refresh-spinner"></div>
+      <span>Pull to refresh</span>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="brand-mini">
+        <span>🏄</span>
+        <span class="brand-text">PointBreak</span>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <div class="location-badge" id="current-zone">
+        <span class="zone-dot"></span>
+        <span>Nadi</span>
+      </div>
+      <div class="wallet-badge" onclick="showWallet()">
+        <span class="wallet-icon">💰</span>
+        <span id="wallet-balance">FJ$0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="user-avatar" id="sidebar-avatar">👤</div>
+      <div class="user-info">
+        <h3 id="sidebar-name">Guest</h3>
+        <p id="sidebar-phone">+679 --- ----</p>
+      </div>
+      <button id="country-btn" onclick="openCountrySelector()" style="margin-left:auto;background:rgba(0,180,216,0.12);border:1px solid rgba(0,180,216,0.2);border-radius:999px;padding:4px 10px;font-size:.8rem;cursor:pointer;color:var(--accent)">🇫🇯 FJ</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" onclick="showSection('home')" class="nav-item active"><span>🏠</span> Home</a>
+      <a href="#" onclick="openSocial()" class="nav-item"><span>📸</span> Social Feed</a>
+      <a href="#" onclick="showSection('history')" class="nav-item"><span>📋</span> My Trips</a>
+      <a href="#" onclick="showWallet()" class="nav-item"><span>💰</span> mPaisa Wallet</a>
+      <a href="#" onclick="showSection('guide')" class="nav-item"><span>🤖</span> Bula Bot Guide</a>
+      <a href="#" onclick="showSection('locations')" class="nav-item"><span>📍</span> Fiji Locations</a>
+      <a href="#" onclick="showSection('settings')" class="nav-item"><span>⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="handleLogout()">
+        <span>🚪</span> Log Out
+      </button>
+    </div>
+  </div>
+  <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- ═══════════ HOME / BOOKING ═══════════ -->
+  <div id="section-home" class="app-section active">
+    <div class="booking-panel">
+      <!-- MODE TOGGLE -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" onclick="setMode('land')" data-mode="land">
+          <span class="mode-icon">🚗</span>
+          <span class="mode-label">Land</span>
+        </button>
+        <button class="mode-btn" onclick="setMode('sea')" data-mode="sea">
+          <span class="mode-icon">🚤</span>
+          <span class="mode-label">Sea</span>
+        </button>
+      </div>
+
+      <!-- LOCATION INPUTS -->
+      <div class="location-inputs">
+        <div class="location-line">
+          <div class="loc-dot pickup"></div>
+          <div class="loc-line"></div>
+          <div class="loc-dot dropoff"></div>
+        </div>
+        <div class="loc-fields">
+          <div class="loc-field" onclick="openLocationPicker('pickup')">
+            <label>Pickup</label>
+            <p id="pickup-display" class="loc-value placeholder">Where are you?</p>
+            <button class="gps-btn" onclick="event.stopPropagation(); useMyLocation()">📍 Use My Location</button>
+          </div>
+          <div class="loc-field" onclick="openLocationPicker('dropoff')">
+            <label>Drop-off</label>
+            <p id="dropoff-display" class="loc-value placeholder">Where to?</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESTIMATE CARD -->
+      <div id="estimate-card" class="estimate-card hidden">
+        <div class="estimate-route">
+          <span class="estimate-distance" id="est-distance">0 km</span>
+          <span class="estimate-duration" id="est-duration">0 min</span>
+          <span class="estimate-surge" id="est-surge">1.0x</span>
+        </div>
+      </div>
+
+      <!-- VEHICLE OPTIONS -->
+      <div id="vehicle-options" class="vehicle-options hidden">
+        <h3 class="section-title">Choose Your Ride</h3>
+        <div class="vehicle-list" id="vehicle-list"></div>
+      </div>
+
+      <!-- MAP BUTTON -->
+      <button class="btn-map" onclick="openMapModal()">
+        <span>🗺️</span> View Map
+      </button>
+
+      <!-- CONFIRM BUTTON -->
+      <button id="confirm-btn" class="btn-primary btn-full btn-confirm hidden" onclick="requestRide()">
+        <span id="confirm-text">Request PointBreak Ride</span>
+        <span id="confirm-price"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════ MAP MODAL ═══════════ -->
+  <div id="map-modal" class="map-modal hidden">
+    <div class="map-modal-header">
+      <button class="map-back-btn" onclick="closeMapModal()">← Back</button>
+      <span class="map-modal-title">🗺️ PointBreak Map</span>
+      <span class="map-modal-subtitle" id="map-modal-info"></span>
+    </div>
+    <div id="map" class="map-modal-canvas"></div>
+    <div class="map-modal-footer">
+      <p>Tap a location marker to set pickup or drop-off</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ REQUESTING ANIMATION ═══════════ -->
+  <div id="section-requesting" class="app-section requesting-section hidden">
+    <div class="requesting-card">
+      <div class="pulse-ring">
+        <div class="pulse-circle p1"></div>
+        <div class="pulse-circle p2"></div>
+        <div class="pulse-circle p3"></div>
+        <div class="pulse-center">🏄</div>
+      </div>
+      <h2>Finding your ride...</h2>
+      <p>Connecting you with the nearest island captain</p>
+      <div class="requesting-route">
+        <span id="req-pickup">Pickup</span>
+        <span class="req-arrow">→</span>
+        <span id="req-dropoff">Drop-off</span>
+      </div>
+      <button class="btn-outline btn-cancel" onclick="cancelRide()">Cancel Request</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ ACTIVE RIDE ═══════════ -->
+  <div id="section-active" class="app-section hidden">
+    <div class="active-ride-panel">
+      <div class="ride-status-bar" id="ride-status-bar">
+        <span class="status-dot"></span>
+        <span id="ride-status-text">Driver is on the way</span>
+      </div>
+
+      <div class="driver-card">
+        <div class="driver-avatar" id="driver-avatar">🚗</div>
+        <div class="driver-info">
+          <h3 id="driver-name">Driver</h3>
+          <div class="driver-rating">
+            <span>⭐</span>
+            <span id="driver-rating">5.0</span>
+          </div>
+          <p id="driver-vehicle">Vehicle • Plate</p>
+        </div>
+        <div class="driver-actions">
+          <button class="action-btn call-btn" onclick="callDriver()">📞</button>
+          <button class="action-btn msg-btn" onclick="messageDriver()">💬</button>
+        </div>
+      </div>
+
+      <div class="ride-route-info">
+        <div class="route-point">
+          <div class="route-dot pickup"></div>
+          <div>
+            <label>Pickup</label>
+            <p id="active-pickup">—</p>
+          </div>
+        </div>
+        <div class="route-point">
+          <div class="route-dot dropoff"></div>
+          <div>
+            <label>Drop-off</label>
+            <p id="active-dropoff">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ride-details-row">
+        <div class="ride-detail"><span>💰</span><span id="active-fare">FJ$0</span></div>
+        <div class="ride-detail"><span>📏</span><span id="active-distance">0 km</span></div>
+        <div class="ride-detail"><span>⏱️</span><span id="active-eta">0 min</span></div>
+      </div>
+
+      <div class="ride-actions">
+        <button class="btn-danger btn-sos" onclick="triggerSOS()">
+          🚨 SOS Emergency
+        </button>
+        <button class="btn-outline" onclick="shareRide()">
+          📤 Share Trip
+        </button>
+        <button class="btn-outline btn-cancel-ride hidden" id="cancel-ride-btn" onclick="cancelActiveRide()">
+          ✕ Cancel Ride
+        </button>
+      </div>
+    </div>
+
+    <div id="active-map" class="main-map"></div>
+  </div>
+
+  <!-- ═══════════ RIDE COMPLETE ═══════════ -->
+  <div id="section-complete" class="app-section hidden">
+    <div class="complete-card">
+      <div class="complete-header">
+        <div class="check-circle">✓</div>
+        <h2>Au! Ride Complete!</h2>
+        <p class="complete-subtitle">Thank you for riding with PointBreak</p>
+      </div>
+
+      <div class="complete-route">
+        <p id="complete-route">Nadi → Denarau</p>
+      </div>
+
+      <div class="complete-fare">
+        <span class="fare-label">Total Fare</span>
+        <span class="fare-amount" id="complete-fare">FJ$0.00</span>
+      </div>
+
+      <div class="rating-section">
+        <h3>Rate your driver</h3>
+        <div class="star-rating" id="star-rating">
+          <span class="star" onclick="setRating(1)">★</span>
+          <span class="star" onclick="setRating(2)">★</span>
+          <span class="star" onclick="setRating(3)">★</span>
+          <span class="star" onclick="setRating(4)">★</span>
+          <span class="star active" onclick="setRating(5)">★</span>
+        </div>
+        <textarea id="review-text" placeholder="Share your island ride experience... (optional)" rows="2"></textarea>
+      </div>
+
+      <button class="btn-primary btn-full" onclick="submitRating()">
+        Submit Rating & Done
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════ HISTORY ═══════════ -->
+  <div id="section-history" class="app-section hidden">
+    <div class="section-container">
+      <h2 class="page-title">My Trips 📋</h2>
+      <div id="history-list" class="history-list">
+        <div class="empty-state">
+          <span class="empty-icon">🏝️</span>
+          <p>No trips yet. Time to explore Fiji!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ WALLET ═══════════ -->
+  <div id="section-wallet" class="app-section hidden">
+    <div class="section-container">
+      <h2 class="page-title">mPaisa Wallet 💰</h2>
+      <div class="wallet-card">
+        <div class="wallet-balance-big">
+          <span class="currency">FJ$</span>
+          <span id="wallet-balance-big" class="amount">0.00</span>
+        </div>
+        <p class="wallet-label">Available Balance</p>
+      </div>
+
+      <div class="topup-section">
+        <h3>Top Up Wallet</h3>
+        <div class="topup-amounts">
+          <button class="topup-btn" onclick="topup(10)">$10</button>
+          <button class="topup-btn" onclick="topup(20)">$20</button>
+          <button class="topup-btn" onclick="topup(50)">$50</button>
+          <button class="topup-btn" onclick="topup(100)">$100</button>
+        </div>
+        <div class="custom-topup">
+          <input type="number" id="custom-topup" placeholder="Custom amount">
+          <button class="btn-primary" onclick="topupCustom()">Top Up</button>
+        </div>
+      </div>
+
+      <div class="transactions-section">
+        <h3>Recent Transactions</h3>
+        <div id="transactions-list" class="transactions-list">
+          <div class="empty-state">
+            <p>No transactions yet</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ GUIDE / BULA BOT ═══════════ -->
+  <div id="section-guide" class="app-section hidden">
+    <div class="guide-container">
+      <div class="guide-header">
+        <span class="guide-avatar">🤖</span>
+        <div>
+          <h2>Bula Bot</h2>
+          <p>Your Fiji travel guide</p>
+        </div>
+      </div>
+      <div id="chat-messages" class="chat-messages">
+        <div class="chat-bubble bot">
+          <p>Bula! 🌺 I'm Bula Bot, your Fiji travel guide. Ask me about:</p>
+          <p>🏖️ Beaches & attractions<br>🍽️ Restaurants & food<br>🏥 Emergency services<br>🚌 Transport info<br>🌤️ Weather</p>
+        </div>
+      </div>
+      <div class="chat-suggestions">
+        <button onclick="askBot('Best beaches')">🏖️ Beaches</button>
+        <button onclick="askBot('Restaurants')">🍽️ Food</button>
+        <button onclick="askBot('Emergency')">🚨 Emergency</button>
+        <button onclick="askBot('Weather')">🌤️ Weather</button>
+      </div>
+      <form class="chat-input" onsubmit="sendChat(event)">
+        <input type="text" id="chat-text" placeholder="Ask Bula Bot anything about Fiji...">
+        <button type="submit" class="btn-send">→</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ SOCIAL FEED ═══════════ -->
+  <div id="section-social" class="app-section hidden">
+    <div class="section-container">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 class="page-title" style="margin:0">📸 Social Feed</h2>
+        <button class="btn-primary" onclick="openNewPost()" style="padding:8px 16px;font-size:.8rem">+ New Post</button>
+      </div>
+      <div id="social-feed-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ NEW POST MODAL ═══════════ -->
+  <div id="new-post-modal" class="modal hidden">
+    <div class="modal-content" style="max-width:480px">
+      <div class="modal-header">
+        <h3>📸 Share Your Story</h3>
+        <button class="modal-close" onclick="closeNewPost()">&times;</button>
+      </div>
+      <div style="padding:16px">
+        <div class="input-group">
+          <label>Title</label>
+          <input type="text" id="post-title" placeholder="Give your story a title...">
+        </div>
+        <div class="input-group">
+          <label>📍 Location</label>
+          <input type="text" id="post-location" placeholder="Where did you go?">
+        </div>
+        <div class="input-group">
+          <label>⭐ Rating</label>
+          <select id="post-rating">
+            <option value="5">⭐⭐⭐⭐⭐ Amazing!</option>
+            <option value="4">⭐⭐⭐⭐ Great</option>
+            <option value="3">⭐⭐⭐ Good</option>
+            <option value="2">⭐⭐ Okay</option>
+            <option value="1">⭐ Poor</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Your Story</label>
+          <textarea id="post-story" rows="4" placeholder="Tell other travelers about your experience..."></textarea>
+        </div>
+        <div class="input-group">
+          <label>📷 Photos</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button type="button" class="btn-secondary" onclick="capturePhoto()" style="padding:8px 12px;font-size:.8rem">📷 Take Photo</button>
+            <label style="display:inline-flex;align-items:center;gap:4px;padding:8px 12px;background:rgba(0,180,216,0.12);border-radius:8px;cursor:pointer;font-size:.8rem;color:var(--accent)">
+              📁 Gallery <input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
+            </label>
+          </div>
+          <div id="uploaded-photos" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
+        <button class="btn-primary btn-full" onclick="submitPost()">Share Story</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ COUNTRY SELECTOR MODAL ═══════════ -->
+  <div id="country-modal" class="modal hidden">
+    <div class="modal-content" style="max-width:400px;max-height:70vh">
+      <div class="modal-header">
+        <h3>🌍 Select Your Country</h3>
+        <button class="modal-close" onclick="closeCountrySelector()">&times;</button>
+      </div>
+      <div class="modal-search">
+        <input type="text" id="country-search" placeholder="Search countries..." oninput="renderCountryList(this.value)">
+      </div>
+      <div id="country-list" class="location-list" style="max-height:50vh;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ DESTINATION REVIEWS MODAL ═══════════ -->
+  <div id="dest-reviews-modal" class="modal hidden">
+    <div class="modal-content" style="max-width:480px;max-height:80vh">
+      <div class="modal-header">
+        <h3 id="dest-reviews-title">⭐ Reviews</h3>
+        <button class="modal-close" onclick="closeDestReviews()">&times;</button>
+      </div>
+      <div id="dest-reviews-list" style="padding:16px;max-height:65vh;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ LOCATIONS ═══════════ -->
+  <div id="section-locations" class="app-section hidden">
+    <div class="section-container">
+      <h2 class="page-title">Fiji Locations 📍</h2>
+      <div class="locations-grid" id="locations-grid"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SETTINGS ═══════════ -->
+  <div id="section-settings" class="app-section hidden">
+    <div class="section-container">
+      <h2 class="page-title">Settings ⚙️</h2>
+      <div class="settings-list">
+        <div class="settings-group">
+          <h3>🔔 Notifications</h3>
+          <label class="settings-toggle"><input type="checkbox" id="set-notifications" checked> <span>Push Notifications</span></label>
+          <label class="settings-toggle"><input type="checkbox" id="set-sound" checked> <span>Notification Sound</span></label>
+          <label class="settings-toggle"><input type="checkbox" id="set-vibration" checked> <span>Vibration</span></label>
+          <button class="btn-outline" onclick="showNotifications()" style="margin-top:8px">View All Notifications</button>
+        </div>
+        <div class="settings-group">
+          <h3>📍 Privacy & Location</h3>
+          <label class="settings-toggle"><input type="checkbox" id="set-location-sharing" checked> <span>Share Location with Driver</span></label>
+          <div class="input-group" style="margin-top:10px">
+            <label>Search Radius</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="range" id="set-radius" min="1" max="25" value="5" style="flex:1">
+              <span id="radius-val" style="font-size:.8rem;color:var(--accent);min-width:35px">5 km</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>🎨 Display</h3>
+          <label class="settings-toggle"><input type="checkbox" id="set-dark-mode" checked> <span>Dark Mode</span></label>
+          <div class="input-group" style="margin-top:10px">
+            <label>Language</label>
+            <select id="set-language">
+              <option value="en">English</option>
+              <option value="fj">Fijian (Vosa Vakaviti)</option>
+              <option value="hi">Hindi</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>🚗 Driver Preferences</h3>
+          <label class="settings-toggle"><input type="checkbox" id="set-auto-accept"> <span>Auto-Accept Nearby Rides</span></label>
+        </div>
+        <div class="settings-group">
+          <h3>🔗 Server</h3>
+          <div class="input-group">
+            <label>API Server URL</label>
+            <input type="url" id="server-url" value="http://localhost:3001">
+          </div>
+          <div class="connection-status" id="connection-status">
+            <span class="status-dot green"></span> Connected
+          </div>
+          <button class="btn-outline" onclick="testConnection()">Test Connection</button>
+        </div>
+        <div class="settings-group">
+          <h3>ℹ️ About</h3>
+          <p class="about-text">PointBreak Rides Fiji v1.0<br>Island transport reimagined for the Pacific.</p>
+        </div>
+        <button class="btn-primary btn-full" onclick="saveSettings()" style="margin-top:12px">Save Settings</button>
+        <button class="btn-danger btn-full" onclick="logout()" style="margin-top:8px">🚪 Log Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ NOTIFICATIONS SECTION ═══════════ -->
+  <div id="section-notif" class="app-section hidden">
+    <div class="section-container">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <button onclick="closeNotifSection()" style="background:none;border:none;color:var(--accent);font-size:1.2rem;cursor:pointer">← Back</button>
+        <h2 class="page-title" style="margin:0">🔔 Notifications</h2>
+      </div>
+      <div id="notif-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SETTINGS MODAL ═══════════ -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content" style="max-width:400px">
+      <div class="modal-header">
+        <h3>⚙️ Settings</h3>
+        <button class="modal-close" onclick="closeSettings()">&times;</button>
+      </div>
+      <div style="padding:16px">
+        <label class="settings-toggle"><input type="checkbox" id="set-notifications-m" checked> <span>Push Notifications</span></label>
+        <label class="settings-toggle"><input type="checkbox" id="set-sound-m" checked> <span>Notification Sound</span></label>
+        <label class="settings-toggle"><input type="checkbox" id="set-location-sharing-m" checked> <span>Share Location</span></label>
+        <label class="settings-toggle"><input type="checkbox" id="set-dark-mode-m" checked> <span>Dark Mode</span></label>
+        <div class="input-group" style="margin-top:12px">
+          <label>Language</label>
+          <select id="set-language-m"><option value="en">English</option><option value="fj">Fijian</option><option value="hi">Hindi</option></select>
+        </div>
+        <button class="btn-primary btn-full" onclick="saveSettings()" style="margin-top:12px">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ LOCATION PICKER MODAL ═══════════ -->
+  <div id="location-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Select Location</h3>
+        <button class="modal-close" onclick="closeLocationPicker()">✕</button>
+      </div>
+      <div class="modal-search">
+        <input type="text" id="location-search" placeholder="Search Fiji locations..." oninput="renderLocationList()">
+      </div>
+      <div class="modal-filter">
+        <button class="filter-btn active" onclick="filterMode('all', this)">All</button>
+        <button class="filter-btn" onclick="filterMode('land', this)">🚗 Land</button>
+        <button class="filter-btn" onclick="filterMode('sea', this)">🚤 Sea</button>
+      </div>
+      <div id="location-list" class="location-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ DRIVER HOME (for driver mode) ═══════════ -->
+  <div id="section-driver-home" class="app-section hidden">
+    <div class="driver-panel">
+      <div class="driver-toggle">
+        <label class="switch">
+          <input type="checkbox" id="driver-online" onchange="toggleDriverOnline()">
+          <span class="slider"></span>
+        </label>
+        <span id="driver-status-label">Offline</span>
+      </div>
+
+      <div class="driver-stats-row">
+        <div class="stat-card">
+          <span class="stat-value" id="stat-rides">0</span>
+          <span class="stat-label">Today's Rides</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="stat-rating">5.0</span>
+          <span class="stat-label">Rating</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="stat-earnings">FJ$0</span>
+          <span class="stat-label">Today's Earnings</span>
+        </div>
+      </div>
+
+      <div id="incoming-ride" class="incoming-ride hidden">
+        <h3>🔔 New Ride Request!</h3>
+        <div class="incoming-info">
+          <p id="incoming-route">Pickup → Dropoff</p>
+          <p id="incoming-price">FJ$0.00</p>
+          <p id="incoming-distance">0 km away</p>
+        </div>
+        <div class="incoming-actions">
+          <button class="btn-primary" onclick="acceptRide()">✓ Accept</button>
+          <button class="btn-outline" onclick="declineRide()">✕ Decline</button>
+        </div>
+      </div>
+
+      <div id="driver-active-ride" class="driver-active-ride hidden">
+        <h3>🚗 Active Ride</h3>
+        <div class="active-ride-info">
+          <p id="driver-ride-route">Pickup → Dropoff</p>
+          <p id="driver-ride-fare">FJ$0.00</p>
+          <p id="driver-ride-status">Matched</p>
+        </div>
+        <div class="driver-ride-actions">
+          <button id="driver-action-btn" class="btn-primary" onclick="driverAction()">
+            Start Ride
+          </button>
+          <button class="btn-outline" onclick="driverComplete()">
+            Complete Ride
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="driver-map" class="main-map"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════ SCENIC DECORATIONS ═══════════ -->
+<div class="scenic-bg">
+  <div class="palm-deco palm-deco-1">🌴</div>
+  <div class="palm-deco palm-deco-2">🌴</div>
+  <div class="flower-deco flower-deco-1">🌺</div>
+  <div class="flower-deco flower-deco-2">🐚</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

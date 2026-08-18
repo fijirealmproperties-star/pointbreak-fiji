@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "PointBreak Rides Fiji",
+    "slug": "pointbreak-rides-fiji",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "pointbreakfiji",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pointbreak.ridesfiji",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PointBreak uses your location to find nearby rides.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "PointBreak uses your location to track active rides."
+      }
+    },
+    "android": {
+      "package": "com.pointbreak.ridesfiji",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "INTERNET"
+      ],
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PointBreak uses your location to find nearby rides.",
+          "locationAlwaysAndWhenInUsePermission": "PointBreak uses your location to track active rides."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "00000000-0000-0000-0000-000000000000"
+      }
+    }
+  }
+}

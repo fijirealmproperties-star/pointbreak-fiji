@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PointBreak Rides — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0a0e1a;--surface:#111827;--card:#1a2236;--card-hover:#1f2a42;
+      --border:#2a3454;--text:#e2e8f0;--text-muted:#8892b0;--accent:#00b4d8;
+      --accent2:#0077b6;--green:#10b981;--red:#ef4444;--orange:#f59e0b;
+      --purple:#8b5cf6;--pink:#ec4899;
+    }
+    body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    
+    /* ── Login ── */
+    .login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0a1628,#0077b6,#00b4d8);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .login-box{background:var(--surface);border-radius:16px;padding:40px;width:90%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    .login-box h1{font-size:1.4rem;margin-bottom:4px}
+    .login-box p{color:var(--text-muted);font-size:.85rem;margin-bottom:20px}
+    .login-box input{width:100%;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.9rem;margin-bottom:12px;font-family:inherit}
+    .login-box input:focus{outline:none;border-color:var(--accent)}
+    .login-box button{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;font-family:inherit}
+    .login-box button:hover{background:var(--accent2)}
+    .login-err{color:var(--red);font-size:.8rem;margin-top:8px;display:none}
+
+    /* ── Layout ── */
+    .admin-layout{display:flex;min-height:100vh}
+    .sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;z-index:100}
+    .sidebar-logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:10px}
+    .sidebar-logo h2{font-size:1.1rem;color:var(--accent)}
+    .sidebar-logo small{color:var(--text-muted);font-size:.7rem}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:.85rem;color:var(--text-muted);transition:all .15s;border-left:3px solid transparent}
+    .nav-item:hover{background:var(--card);color:var(--text)}
+    .nav-item.active{background:var(--card);color:var(--accent);border-left-color:var(--accent)}
+    .nav-item span{font-size:1.1rem}
+    .nav-section{font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);padding:16px 20px 6px;opacity:.5}
+    .main-content{margin-left:240px;flex:1;padding:24px;min-height:100vh}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .page-header h1{font-size:1.4rem;font-weight:700}
+    .page-header .badge{background:var(--accent);color:#fff;padding:4px 12px;border-radius:999px;font-size:.75rem;font-weight:600}
+
+    /* ── Stats Cards ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+    .stat-card{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)}
+    .stat-card .stat-icon{font-size:1.5rem;margin-bottom:8px}
+    .stat-card .stat-value{font-size:1.8rem;font-weight:700}
+    .stat-card .stat-label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+    .stat-card.green .stat-value{color:var(--green)}
+    .stat-card.blue .stat-value{color:var(--accent)}
+    .stat-card.orange .stat-value{color:var(--orange)}
+    .stat-card.purple .stat-value{color:var(--purple)}
+    .stat-card.pink .stat-value{color:var(--pink)}
+    .stat-card.red .stat-value{color:var(--red)}
+
+    /* ── Table ── */
+    .data-card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:20px}
+    .data-card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+    .data-card-header h3{font-size:.95rem;font-weight:600}
+    .data-card-header .filters{display:flex;gap:8px}
+    .filter-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .15s}
+    .filter-btn:hover,.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;padding:10px 16px;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border);font-weight:600}
+    td{padding:12px 16px;font-size:.85rem;border-bottom:1px solid rgba(42,52,84,.4)}
+    tr:hover td{background:rgba(0,180,216,.03)}
+    .status-badge{padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:600;display:inline-block}
+    .status-active{background:rgba(16,185,129,.15);color:var(--green)}
+    .status-searching{background:rgba(245,158,11,.15);color:var(--orange)}
+    .status-matched{background:rgba(139,92,246,.15);color:var(--purple)}
+    .status-accepted{background:rgba(0,180,216,.15);color:var(--accent)}
+    .status-in_progress{background:rgba(0,119,182,.15);color:var(--accent2)}
+    .status-completed{background:rgba(16,185,129,.15);color:var(--green)}
+    .status-cancelled{background:rgba(239,68,68,.15);color:var(--red)}
+    .status-offline{background:rgba(239,68,68,.15);color:var(--red)}
+    .role-badge{padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
+    .role-admin{background:rgba(239,68,68,.15);color:var(--red)}
+    .role-driver{background:rgba(0,180,216,.15);color:var(--accent)}
+    .role-rider{background:rgba(139,92,246,.15);color:var(--purple)}
+    .star{color:var(--orange)}
+    .mono{font-family:monospace;font-size:.8rem;color:var(--text-muted)}
+    .truncate{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ── Page sections ── */
+    .page-section{display:none}
+    .page-section.active{display:block}
+
+    /* ── Map ── */
+    #admin-map{height:400px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px}
+
+    /* ── Modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9998;display:none}
+    .modal-overlay.show{display:flex}
+    .modal{background:var(--surface);border-radius:16px;border:1px solid var(--border);width:90%;max-width:560px;max-height:85vh;overflow-y:auto}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px;border-bottom:1px solid var(--border)}
+    .modal-header h3{font-size:1rem}
+    .modal-close{background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer}
+    .modal-body{padding:20px}
+    .modal-body label{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:4px;margin-top:12px}
+    .modal-body input,.modal-body select,.modal-body textarea{width:100%;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;font-family:inherit}
+    .modal-body input:focus,.modal-body select:focus{outline:none;border-color:var(--accent)}
+    .modal-body textarea{min-height:80px;resize:vertical}
+    .modal-actions{display:flex;gap:8px;padding:16px 20px;border-top:1px solid var(--border);justify-content:flex-end}
+    .btn{padding:8px 18px;border-radius:8px;font-size:.8rem;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:all .15s}
+    .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+    .btn-success{background:var(--green);color:#fff}.btn-success:hover{opacity:.9}
+    .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.9}
+    .btn-sm{padding:5px 12px;font-size:.72rem}
+
+    /* ── Notifications Bar ── */
+    .notif-bar{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden;transition:all .3s}
+    .notif-bar.has-unread{border-color:var(--orange);box-shadow:0 0 15px rgba(245,158,11,.1)}
+    .notif-bar-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer;transition:background .15s}
+    .notif-bar-header:hover{background:rgba(255,255,255,.03)}
+    .notif-bar-left{display:flex;align-items:center;gap:10px}
+    .notif-bell{font-size:1.2rem;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+    .notif-bar-title{font-size:.9rem;font-weight:600}
+    .notif-bar-count{background:var(--red);color:#fff;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:99px;min-width:22px;text-align:center}
+    .notif-bar-count:empty,.notif-bar-count[data-count="0"]{display:none}
+    .notif-bar-toggle{color:var(--text-muted);font-size:.75rem;transition:transform .3s}
+    .notif-bar-toggle.open{transform:rotate(180deg)}
+    .notif-bar-body{max-height:0;overflow:hidden;transition:max-height .3s ease;border-top:0 solid var(--border)}
+    .notif-bar-body.open{max-height:600px;border-top-width:1px}
+    .notif-item{padding:14px 20px;border-bottom:1px solid rgba(42,52,84,.4);transition:background .15s}
+    .notif-item:last-child{border-bottom:none}
+    .notif-item:hover{background:rgba(255,255,255,.02)}
+    .notif-item.unread{background:rgba(245,158,11,.05);border-left:3px solid var(--orange)}
+    .notif-item-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .notif-item-title{font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:6px}
+    .notif-item-time{font-size:.65rem;color:var(--text-muted);white-space:nowrap}
+    .notif-item-body{font-size:.78rem;color:var(--text-muted);margin-top:4px;line-height:1.4}
+    .notif-item-actions{display:flex;gap:6px;margin-top:8px}
+    .notif-item-detail{margin-top:10px;padding:12px;background:rgba(0,0,0,.2);border-radius:8px;font-size:.78rem;line-height:1.5}
+    .notif-item-detail b{color:var(--accent)}
+    .notif-empty{padding:30px;text-align:center;color:var(--text-muted);font-size:.85rem}
+    .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#dc2626}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-muted)}.btn-ghost:hover{background:var(--card)}
+    .btn-sm{padding:5px 10px;font-size:.7rem}
+
+    /* ── Responsive ── */
+    @media(max-width:768px){
+      .sidebar{display:none}
+      .main-content{margin-left:0}
+      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      table{font-size:.75rem}
+      th,td{padding:8px 10px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login ── -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h1>Admin Panel</h1>
+    <p>PointBreak Rides Fiji — Management Console</p>
+    <input type="password" id="adminPassword" placeholder="Admin password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="loginErr">Invalid password</div>
+  </div>
+</div>
+
+<!-- ── Main Admin ── -->
+<div class="admin-layout" id="adminLayout" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <h2>PointBreak Admin</h2>
+      <small>Rides Management Console</small>
+    </div>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span>📊</span> Dashboard</div>
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="showPage('users')" id="nav-users"><span>👥</span> Users</div>
+    <div class="nav-item" onclick="showPage('drivers')" id="nav-drivers"><span>🚗</span> Drivers</div>
+    <div class="nav-item" onclick="showPage('driver-apps')" id="nav-driver-apps"><span>📋</span> Applications <span id="apps-badge" style="display:none;background:var(--danger);color:#fff;font-size:.6rem;padding:1px 5px;border-radius:99px;margin-left:4px"></span></div>
+    <div class="nav-item" onclick="showPage('rides')" id="nav-rides"><span>🛣️</span> Rides</div>
+    <div class="nav-section">Content</div>
+    <div class="nav-item" onclick="showPage('locations')" id="nav-locations"><span>📍</span> Locations</div>
+    <div class="nav-item" onclick="showPage('vehicles')" id="nav-vehicles"><span>🚙</span> Vehicles</div>
+    <div class="nav-item" onclick="showPage('map')" id="nav-map"><span>🗺️</span> Live Map</div>
+    <div class="nav-section">Finance</div>
+    <div class="nav-item" onclick="showPage('revenue')" id="nav-revenue"><span>💰</span> Revenue</div>
+    <div class="nav-item" onclick="showPage('pricing')" id="nav-pricing"><span>💲</span> Pricing</div>
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="showPage('settings')" id="nav-settings"><span>⚙️</span> Settings</div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- ═══ NOTIFICATIONS BAR ═══ -->
+    <div class="notif-bar" id="adminNotifBar">
+      <div class="notif-bar-header" onclick="toggleNotifBar()">
+        <div class="notif-bar-left">
+          <span class="notif-bell">🔔</span>
+          <span class="notif-bar-title">Notifications</span>
+          <span class="notif-bar-count" id="notifCount">0</span>
+        </div>
+        <span class="notif-bar-toggle" id="notifToggle">▼</span>
+      </div>
+      <div class="notif-bar-body" id="notifBarBody">
+        <div id="notifBarList"></div>
+      </div>
+    </div>
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="page-section active" id="page-dashboard">
+      <div class="page-header"><h1>Dashboard</h1><span class="badge" id="dashTime"></span></div>
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-value" id="statUsers">-</div><div class="stat-label">Total Users</div></div>
+        <div class="stat-card green"><div class="stat-icon">🚗</div><div class="stat-value" id="statDrivers">-</div><div class="stat-label">Drivers</div></div>
+        <div class="stat-card orange"><div class="stat-icon">🛣️</div><div class="stat-value" id="statActive">-</div><div class="stat-label">Active Rides</div></div>
+        <div class="stat-card purple"><div class="stat-icon">✅</div><div class="stat-value" id="statCompleted">-</div><div class="stat-label">Completed Today</div></div>
+        <div class="stat-card pink"><div class="stat-icon">💰</div><div class="stat-value" id="statRevenue">-</div><div class="stat-label">Revenue Today</div></div>
+        <div class="stat-card red"><div class="stat-icon">📍</div><div class="stat-value" id="statLocations">-</div><div class="stat-label">Locations</div></div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header"><h3>Recent Rides</h3></div>
+        <div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>From</th><th>To</th><th>Status</th><th>Fare</th><th>Time</th></tr></thead><tbody id="dashRides"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ USERS ═══ -->
+    <div class="page-section" id="page-users">
+      <div class="page-header"><h1>Users</h1><span class="badge" id="userCount">0</span></div>
+      <div class="data-card">
+        <div class="data-card-header">
+          <h3>All Registered Users</h3>
+          <div class="filters">
+            <button class="filter-btn active" onclick="filterUsers('all',this)">All</button>
+            <button class="filter-btn" onclick="filterUsers('rider',this)">Riders</button>
+            <button class="filter-btn" onclick="filterUsers('driver',this)">Drivers</button>
+            <button class="filter-btn" onclick="filterUsers('admin',this)">Admins</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="usersTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ DRIVERS ═══ -->
+    <div class="page-section" id="page-drivers">
+      <div class="page-header"><h1>Drivers</h1><span class="badge" id="driverCount">0</span></div>
+      <div class="data-card">
+        <div class="data-card-header"><h3>All Drivers</h3>
+          <div class="filters">
+            <button class="filter-btn active" onclick="filterDrivers('all',this)">All</button>
+            <button class="filter-btn" onclick="filterDrivers('available',this)">Online</button>
+            <button class="filter-btn" onclick="filterDrivers('offline',this)">Offline</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Phone</th><th>Vehicle</th><th>Plate</th><th>Mode</th><th>Rating</th><th>Rides</th><th>Status</th><th>Actions</th></tr></thead><tbody id="driversTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ RIDES ═══ -->
+    <div class="page-section" id="page-driver-apps">
+      <div class="page-header"><h1>Driver Applications</h1><span class="badge" id="appCount">0</span></div>
+      <div class="data-card">
+        <div class="data-card-header"><h3>Pending Applications</h3>
+          <div class="filters">
+            <button class="filter-btn active" onclick="filterApps('pending',this)">Pending</button>
+            <button class="filter-btn" onclick="filterApps('approved',this)">Approved</button>
+            <button class="filter-btn" onclick="filterApps('rejected',this)">Rejected</button>
+            <button class="filter-btn" onclick="filterApps('all',this)">All</button>
+          </div>
+        </div>
+        <div id="driver-apps-list"></div>
+      </div>
+    </div>
+
+    <div class="page-section" id="page-rides">
+      <div class="page-header"><h1>Rides</h1><span class="badge" id="rideCount">0</span></div>
+      <div class="data-card">
+        <div class="data-card-header"><h3>Ride History</h3>
+          <div class="filters">
+            <button class="filter-btn active" onclick="filterRides('all',this)">All</button>
+            <button class="filter-btn" onclick="filterRides('searching',this)">Searching</button>
+            <button class="filter-btn" onclick="filterRides('in_progress',this)">Active</button>
+            <button class="filter-btn" onclick="filterRides('completed',this)">Completed</button>
+            <button class="filter-btn" onclick="filterRides('cancelled',this)">Cancelled</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Rider</th><th>Driver</th><th>Route</th><th>Mode</th><th>Status</th><th>Distance</th><th>Fare</th><th>Surge</th><th>Created</th><th>Actions</th></tr></thead><tbody id="ridesTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ LOCATIONS ═══ -->
+    <div class="page-section" id="page-locations">
+      <div class="page-header"><h1>Locations</h1><span class="badge" id="locationCount">0</span></div>
+      <div class="data-card">
+        <div class="data-card-header"><h3>All Locations</h3>
+          <div class="filters">
+            <button class="filter-btn active" onclick="filterLocations('all',this)">All</button>
+            <button class="filter-btn" onclick="filterLocations('nadi',this)">Nadi</button>
+            <button class="filter-btn" onclick="filterLocations('suva',this)">Suva</button>
+            <button class="filter-btn" onclick="filterLocations('mamanuca',this)">Mamanuca</button>
+            <button class="filter-btn" onclick="filterLocations('yasawa',this)">Yasawa</button>
+            <button class="filter-btn" onclick="filterLocations('coral-coast',this)">Coral Coast</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table><thead><tr><th>Icon</th><th>Name</th><th>Zone</th><th>Latitude</th><th>Longitude</th><th>Modes</th><th>Actions</th></tr></thead><tbody id="locationsTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ VEHICLES ═══ -->
+    <div class="page-section" id="page-vehicles">
+      <div class="page-header"><h1>Vehicles</h1></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="data-card">
+          <div class="data-card-header"><h3>🚗 Land Vehicles</h3></div>
+          <div style="overflow-x:auto"><table><thead><tr><th>Type</th><th>Base</th><th>Per Km</th><th>Per Min</th><th>Min Fare</th><th>Capacity</th><th>Features</th></tr></thead><tbody id="landVehicles"></tbody></table></div>
+        </div>
+        <div class="data-card">
+          <div class="data-card-header"><h3>🚤 Sea Vehicles</h3></div>
+          <div style="overflow-x:auto"><table><thead><tr><th>Type</th><th>Base</th><th>Per Km</th><th>Per Min</th><th>Min Fare</th><th>Capacity</th><th>Features</th></tr></thead><tbody id="seaVehicles"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MAP ═══ -->
+    <div class="page-section" id="page-map">
+      <div class="page-header"><h1>Live Map</h1><button class="btn btn-primary btn-sm" onclick="refreshMap()">Refresh</button></div>
+      <div id="admin-map"></div>
+      <div class="stats-grid">
+        <div class="stat-card green"><div class="stat-icon">🚗</div><div class="stat-value" id="mapOnline">0</div><div class="stat-label">Online Drivers</div></div>
+        <div class="stat-card orange"><div class="stat-icon">📍</div><div class="stat-value" id="mapLocations">0</div><div class="stat-label">Locations</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ REVENUE ═══ -->
+    <div class="page-section" id="page-revenue">
+      <div class="page-header"><h1>Revenue</h1></div>
+      <div class="stats-grid" id="revenueStats"></div>
+      <div class="data-card">
+        <div class="data-card-header"><h3>Completed Rides</h3></div>
+        <div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Rides</th><th>Revenue (FJD)</th><th>Avg Fare</th></tr></thead><tbody id="revenueTable"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ PRICING ═══ -->
+    <div class="page-section" id="page-pricing">
+      <div class="page-header"><h1>Pricing Configuration</h1><button class="btn btn-primary btn-sm" onclick="savePricing()">Save Changes</button></div>
+      <div id="pricingContent"></div>
+    </div>
+
+    <!-- ═══ SETTINGS ═══ -->
+    <div class="page-section" id="page-settings">
+      <div class="page-header"><h1>System Settings</h1></div>
+
+      <div class="data-card">
+        <div class="data-card-header"><h3>📧 Email (SMTP) Configuration</h3></div>
+        <div style="padding:20px">
+          <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:16px">
+            Configure SMTP to send approval/rejection emails to drivers. Supports Gmail, Outlook, SendGrid, Mailgun, etc.
+          </p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <label style="font-size:.75rem;color:var(--text-muted)">SMTP Host
+              <input id="smtp-host" value="smtp.gmail.com" style="width:100%;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;margin-top:4px;font-family:inherit">
+            </label>
+            <label style="font-size:.75rem;color:var(--text-muted)">SMTP Port
+              <input id="smtp-port" value="587" style="width:100%;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;margin-top:4px;font-family:inherit">
+            </label>
+            <label style="font-size:.75rem;color:var(--text-muted)">Email Address
+              <input id="smtp-user" placeholder="your@gmail.com" style="width:100%;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;margin-top:4px;font-family:inherit">
+            </label>
+            <label style="font-size:.75rem;color:var(--text-muted)">App Password
+              <input id="smtp-pass" type="password" placeholder="xxxx-xxxx-xxxx-xxxx" style="width:100%;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;margin-top:4px;font-family:inherit">
+            </label>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="saveSmtpConfig()">Save SMTP Config</button>
+            <button class="btn btn-sm" style="background:var(--border);color:var(--text)" onclick="testSmtpEmail()">Send Test Email</button>
+          </div>
+          <p style="font-size:.7rem;color:var(--text-muted);margin-top:10px">
+            💡 For Gmail: use an <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">App Password</a> (not your regular password).<br>
+            Set env vars <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS</code> or fill above and restart server.
+          </p>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-header"><h3>🔔 Notification Settings</h3></div>
+        <div style="padding:20px">
+          <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;margin-bottom:12px">
+            <input type="checkbox" checked style="accent-color:var(--accent);width:18px;height:18px"> Send approval emails to drivers
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;margin-bottom:12px">
+            <input type="checkbox" checked style="accent-color:var(--accent);width:18px;height:18px"> Send rejection emails to drivers
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer">
+            <input type="checkbox" checked style="accent-color:var(--accent);width:18px;height:18px"> Auto-refresh notifications (15s)
+          </label>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-header"><h3>🗄️ Database</h3></div>
+        <div style="padding:20px">
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:12px">Database stats and maintenance</p>
+          <div id="dbStats" style="font-size:.82rem;color:var(--text-muted)">Loading...</div>
+          <button class="btn btn-sm" style="background:var(--border);color:var(--text);margin-top:12px" onclick="loadDbStats()">Refresh Stats</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Modal ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modalTitle">Edit</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.port === '3001' ? '' : 'http://localhost:3001';
+let token = null;
+let allLocations = [];
+let allUsers = [];
+let allDrivers = [];
+let allRides = [];
+let vehicles = {};
+let adminMap = null;
+
+// ── Login ──
+function doLogin() {
+  const pw = document.getElementById('adminPassword').value;
+  fetch(`${API}/api/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: '+6798720502', password: pw || undefined })
+  }).then(r => r.json()).then(d => {
+    if (d.accessToken) {
+      token = d.accessToken;
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('adminLayout').style.display = 'flex';
+      initAdmin();
+    } else {
+      document.getElementById('loginErr').style.display = 'block';
+    }
+  }).catch(() => document.getElementById('loginErr').style.display = 'block');
+}
+
+function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+function apiFetch(path, opts = {}) {
+  return fetch(`${API}${path}`, { ...opts, headers: { ...authHeaders(), ...opts.headers } }).then(r => r.json());
+}
+
+// ── Init ──
+async function initAdmin() {
+  document.getElementById('dashTime').textContent = new Date().toLocaleString();
+  loadDashboard();
+  loadUsers();
+  loadDrivers();
+  loadDriverApps();
+  loadAdminNotifications();
+  loadRides();
+  loadLocations();
+  loadVehicles();
+  loadPricing();
+  setInterval(loadAdminNotifications, 15000);
+}
+
+// ── Navigation ──
+function showPage(page) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.getElementById(`nav-${page}`).classList.add('active');
+  if (page === 'map') setTimeout(initAdminMap, 100);
+  if (page === 'revenue') loadRevenue();
+}
+
+// ── Dashboard ──
+async function loadDashboard() {
+  try {
+    const [rides, locations] = await Promise.all([
+      apiFetch('/api/rides?limit=100'),
+      fetch(`${API}/api/locations`).then(r => r.json())
+    ]);
+    allRides = rides;
+    allLocations = locations;
+    const active = rides.filter(r => ['searching','matched','accepted','in_progress'].includes(r.status));
+    const today = new Date().toISOString().split('T')[0];
+    const completed = rides.filter(r => r.status === 'completed' && r.completed_at?.startsWith(today));
+    const revenue = completed.reduce((s, r) => s + (r.price_fjd || 0), 0);
+
+    document.getElementById('statUsers').textContent = allUsers.length || '-';
+    document.getElementById('statDrivers').textContent = allDrivers.length || '-';
+    document.getElementById('statActive').textContent = active.length;
+    document.getElementById('statCompleted').textContent = completed.length;
+    document.getElementById('statRevenue').textContent = `FJD $${revenue.toFixed(2)}`;
+    document.getElementById('statLocations').textContent = locations.length;
+
+    document.getElementById('dashRides').innerHTML = rides.slice(0, 10).map(r => `
+      <tr>
+        <td class="mono">${r.id?.slice(0,8)}</td>
+        <td class="truncate">${r.pickup_name || '-'}</td>
+        <td class="truncate">${r.dropoff_name || '-'}</td>
+        <td><span class="status-badge status-${r.status}">${r.status}</span></td>
+        <td>${r.price_fjd ? 'FJD $' + r.price_fjd.toFixed(2) : '-'}</td>
+        <td class="mono">${r.created_at ? new Date(r.created_at).toLocaleString() : '-'}</td>
+      </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">No rides yet</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+// ── Users ──
+async function loadUsers() {
+  try {
+    allUsers = await apiFetch('/api/admin/users');
+    document.getElementById('userCount').textContent = allUsers.length;
+    renderUsers(allUsers);
+  } catch(e) { console.error(e); }
+}
+function renderUsers(users) {
+  document.getElementById('usersTable').innerHTML = users.map(u => `
+    <tr>
+      <td><b>${u.name || '-'}</b></td>
+      <td class="mono">${u.phone || '-'}</td>
+      <td>${u.email || '-'}</td>
+      <td><span class="role-badge role-${u.role}">${u.role || 'rider'}</span></td>
+      <td class="mono">${u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="viewUser('${u.id}')">View</button></td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">No users found</td></tr>';
+}
+function filterUsers(filter, el) {
+  el.closest('.filters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderUsers(filter === 'all' ? allUsers : allUsers.filter(u => u.role === filter));
+}
+function viewUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
+  openModal('User Details', `
+    <label>Name</label><input value="${u.name || ''}" id="editName">
+    <label>Phone</label><input value="${u.phone || ''}" disabled>
+    <label>Email</label><input value="${u.email || ''}" id="editEmail">
+    <label>Role</label><select id="editRole"><option value="rider" ${u.role==='rider'?'selected':''}>Rider</option><option value="driver" ${u.role==='driver'?'selected':''}>Driver</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select>
+  `, `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="saveUser('${u.id}')">Save</button>`);
+}
+async function saveUser(id) {
+  await apiFetch(`/api/admin/users/${id}`, { method: 'PUT', body: JSON.stringify({ name: document.getElementById('editName').value, email: document.getElementById('editEmail').value, role: document.getElementById('editRole').value }) });
+  closeModal(); loadUsers();
+}
+
+// ── Drivers ──
+async function loadDrivers() {
+  try {
+    allDrivers = await apiFetch('/api/admin/drivers');
+    document.getElementById('driverCount').textContent = allDrivers.length;
+    renderDrivers(allDrivers);
+  } catch(e) { console.error(e); }
+}
+
+let allApps = [], appFilter = 'pending';
+// ── Notifications Bar ──
+let notifBarOpen = false;
+let adminNotifs = [];
+
+function toggleNotifBar() {
+  notifBarOpen = !notifBarOpen;
+  document.getElementById('notifBarBody').classList.toggle('open', notifBarOpen);
+  document.getElementById('notifToggle').classList.toggle('open', notifBarOpen);
+}
+
+async function loadAdminNotifications() {
+  try {
+    const apps = await apiFetch('/api/driver-applications?status=pending');
+    const rides = allRides || [];
+    const searchingRides = rides.filter(r => r.status === 'searching');
+
+    adminNotifs = [];
+
+    apps.forEach(app => {
+      adminNotifs.push({
+        id: app.id, type: 'driver_application', status: 'unread',
+        title: `📋 New Driver Application`,
+        body: `${app.name} — ${app.vehicle_type} (${app.vehicle_plate})`,
+        time: app.created_at,
+        detail: `<b>Name:</b> ${app.name}<br><b>Phone:</b> ${app.phone}<br><b>Email:</b> ${app.email || 'N/A'}<br><b>DOB:</b> ${app.dob || 'N/A'}<br><b>Address:</b> ${app.address || 'N/A'}<br><hr style="border-color:rgba(255,255,255,.1);margin:8px 0"><b>Vehicle:</b> ${app.vehicle_type} — ${app.vehicle_make||''} ${app.vehicle_model||''} ${app.vehicle_year||''}<br><b>Plate:</b> ${app.vehicle_plate}<br><b>Color:</b> ${app.vehicle_color || 'N/A'}<br><b>Mode:</b> ${app.mode}<br><hr style="border-color:rgba(255,255,255,.1);margin:8px 0"><b>License #:</b> ${app.license_no}<br><b>License Exp:</b> ${app.license_expiry || 'N/A'}<br><b>Insurance:</b> ${app.insurance_provider || 'N/A'} — ${app.insurance_policy || 'N/A'}<br><b>Insurance Exp:</b> ${app.insurance_expiry || 'N/A'}`,
+        appData: app
+      });
+    });
+
+    searchingRides.forEach(ride => {
+      adminNotifs.push({
+        id: ride.id, type: 'ride_search', status: 'info',
+        title: `🔍 Ride Searching`,
+        body: `${ride.mode === 'sea' ? '🚤' : '🚗'} ${ride.pickup_name || 'Unknown'} → ${ride.dropoff_name || 'Unknown'}`,
+        time: ride.created_at,
+        detail: `<b>Route:</b> ${ride.pickup_name || 'N/A'} → ${ride.dropoff_name || 'N/A'}<br><b>Mode:</b> ${ride.mode}<br><b>Status:</b> ${ride.status}`
+      });
+    });
+
+    const pendingCount = apps.length;
+    const searchCount = searchingRides.length;
+    const total = pendingCount + searchCount;
+
+    document.getElementById('notifCount').textContent = total;
+    document.getElementById('notifCount').dataset.count = total;
+    document.querySelector('.notif-bar').classList.toggle('has-unread', pendingCount > 0);
+
+    renderNotifBar();
+  } catch(e) { console.error('Notif load error:', e); }
+}
+
+function renderNotifBar() {
+  const el = document.getElementById('notifBarList');
+  if (!adminNotifs.length) {
+    el.innerHTML = '<div class="notif-empty">✅ No pending notifications</div>';
+    return;
+  }
+  el.innerHTML = adminNotifs.map(n => `
+    <div class="notif-item ${n.status === 'unread' ? 'unread' : ''}" id="notif-${n.id}">
+      <div class="notif-item-top">
+        <div class="notif-item-title">${n.title}</div>
+        <div class="notif-item-time">${n.time || ''}</div>
+      </div>
+      <div class="notif-item-body">${n.body}</div>
+      <div class="notif-item-actions">
+        ${n.type === 'driver_application' ? `
+          <button class="btn btn-success btn-sm" onclick="notifApproveApp('${n.id}')">✅ Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="notifRejectApp('${n.id}')">❌ Reject</button>
+          <button class="btn btn-sm" style="background:var(--border);color:var(--text)" onclick="showPage('driver-apps')">📋 View Full</button>
+        ` : ''}
+        ${n.type === 'ride_search' ? `
+          <button class="btn btn-sm" style="background:var(--border);color:var(--text)" onclick="showPage('rides')">🛣️ View Rides</button>
+        ` : ''}
+      </div>
+      <div class="notif-item-detail">${n.detail}</div>
+    </div>`).join('');
+}
+
+function notifApproveApp(id) {
+  const notes = prompt('Admin notes (optional):');
+  if (notes === null) return;
+  apiFetch(`/api/driver-applications/${id}/approve`, { method: 'PUT', body: JSON.stringify({ notes }) }).then(() => {
+    loadAdminNotifications();
+    loadDriverApps();
+    loadDrivers();
+    loadDashboard();
+  });
+}
+
+function notifRejectApp(id) {
+  const notes = prompt('Reason for rejection:');
+  if (notes === null) return;
+  apiFetch(`/api/driver-applications/${id}/reject`, { method: 'PUT', body: JSON.stringify({ notes }) }).then(() => {
+    loadAdminNotifications();
+    loadDriverApps();
+  });
+}
+
+async function loadDriverApps() {
+  try {
+    allApps = await apiFetch('/api/driver-applications');
+    const pending = allApps.filter(a => a.status === 'pending').length;
+    const badge = document.getElementById('apps-badge');
+    if (pending > 0) { badge.style.display = 'inline'; badge.textContent = pending; } else { badge.style.display = 'none'; }
+    filterApps(appFilter);
+  } catch(e) { console.error(e); }
+}
+function filterApps(status, btn) {
+  appFilter = status;
+  if (btn) { btn.closest('.filters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+  const filtered = status === 'all' ? allApps : allApps.filter(a => a.status === status);
+  document.getElementById('appCount').textContent = filtered.length;
+  document.getElementById('driver-apps-list').innerHTML = filtered.length ? filtered.map(a => `
+    <div style="padding:16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-weight:600;font-size:.95rem">${a.name} <span style="font-size:.7rem;color:var(--text-muted);font-weight:400">${a.phone}</span></div>
+          <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px">${a.email||'No email'} • DOB: ${a.dob||'N/A'} • ${a.address||'No address'}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          ${a.status==='pending'?`<button onclick="approveApp('${a.id}')" style="padding:4px 10px;border-radius:6px;background:var(--success);color:#fff;border:none;cursor:pointer;font-size:.75rem;font-weight:600">✅ Approve</button><button onclick="rejectApp('${a.id}')" style="padding:4px 10px;border-radius:6px;background:var(--danger);color:#fff;border:none;cursor:pointer;font-size:.75rem;font-weight:600">❌ Reject</button>`:''}
+          <span style="padding:3px 8px;border-radius:99px;font-size:.7rem;font-weight:600;${a.status==='pending'?'background:rgba(255,193,7,0.15);color:#ffc107':a.status==='approved'?'background:rgba(76,175,80,0.15);color:#4caf50':'background:rgba(244,67,54,0.15);color:#f44336'}">${a.status}</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px;font-size:.78rem">
+        <div style="padding:8px;background:rgba(255,255,255,0.04);border-radius:6px">
+          <div style="color:var(--text-muted);font-size:.65rem;margin-bottom:2px">🚗 Vehicle</div>
+          <div>${a.vehicle_type} • ${a.vehicle_make||''} ${a.vehicle_model||''} ${a.vehicle_year||''}</div>
+          <div>Plate: <b>${a.vehicle_plate}</b> • ${a.vehicle_color||''} • ${a.mode}</div>
+        </div>
+        <div style="padding:8px;background:rgba(255,255,255,0.04);border-radius:6px">
+          <div style="color:var(--text-muted);font-size:.65rem;margin-bottom:2px">🪪 License</div>
+          <div>#${a.license_no} • Exp: ${a.license_expiry||'N/A'}</div>
+        </div>
+        <div style="padding:8px;background:rgba(255,255,255,0.04);border-radius:6px">
+          <div style="color:var(--text-muted);font-size:.65rem;margin-bottom:2px">🛡️ Insurance</div>
+          <div>${a.insurance_provider||'N/A'} • ${a.insurance_policy||'N/A'}</div>
+          <div>Exp: ${a.insurance_expiry||'N/A'}</div>
+        </div>
+      </div>
+      ${a.admin_notes?`<div style="margin-top:6px;padding:6px 10px;background:rgba(0,180,216,0.08);border-radius:6px;font-size:.75rem">📝 ${a.admin_notes}</div>`:''}
+      <div style="font-size:.65rem;color:var(--text-muted);margin-top:6px">Applied: ${a.created_at}</div>
+    </div>`).join('') : '<div style="padding:30px;text-align:center;color:var(--text-muted)">No applications found</div>';
+}
+async function approveApp(id) {
+  const notes = prompt('Admin notes (optional):');
+  if (notes === null) return;
+  await apiFetch(`/api/driver-applications/${id}/approve`, { method:'PUT', body: JSON.stringify({ notes }) });
+  loadDriverApps(); loadDrivers();
+}
+async function rejectApp(id) {
+  const notes = prompt('Reason for rejection:');
+  if (notes === null) return;
+  await apiFetch(`/api/driver-applications/${id}/reject`, { method:'PUT', body: JSON.stringify({ notes }) });
+  loadDriverApps();
+}
+function renderDrivers(drivers) {
+  document.getElementById('driversTable').innerHTML = drivers.map(d => `
+    <tr>
+      <td><b>${d.name}</b></td>
+      <td class="mono">${d.phone}</td>
+      <td>${d.vehicle_name || '-'}</td>
+      <td class="mono">${d.vehicle_plate || '-'}</td>
+      <td>${d.mode === 'sea' ? '🚤 Sea' : '🚗 Land'}</td>
+      <td><span class="star">★</span> ${d.rating?.toFixed(1) || '5.0'}</td>
+      <td>${d.total_rides || 0}</td>
+      <td><span class="status-badge ${d.available ? 'status-active' : 'status-offline'}">${d.available ? 'Online' : 'Offline'}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="viewDriver('${d.id}')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="removeDriver('${d.id}')">Remove</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text-muted)">No drivers found</td></tr>';
+}
+function filterDrivers(filter, el) {
+  el.closest('.filters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderDrivers(filter === 'all' ? allDrivers : filter === 'available' ? allDrivers.filter(d => d.available) : allDrivers.filter(d => !d.available));
+}
+function viewDriver(id) {
+  const d = allDrivers.find(x => x.id === id);
+  if (!d) return;
+  openModal('Driver Details', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label>Name</label><input value="${d.name}" id="dName"></div>
+      <div><label>Phone</label><input value="${d.phone}" disabled></div>
+      <div><label>Vehicle</label><input value="${d.vehicle_name || ''}" id="dVehicle"></div>
+      <div><label>Plate</label><input value="${d.vehicle_plate || ''}" id="dPlate"></div>
+      <div><label>Capacity</label><input type="number" value="${d.capacity || 4}" id="dCapacity"></div>
+      <div><label>Mode</label><select id="dMode"><option value="land" ${d.mode==='land'?'selected':''}>Land</option><option value="sea" ${d.mode==='sea'?'selected':''}>Sea</option></select></div>
+      <div><label>Vehicle Type</label><input value="${d.vehicle_type || ''}" id="dType"></div>
+      <div><label>License</label><input value="${d.license_no || ''}" id="dLicense"></div>
+    </div>
+    <div style="margin-top:12px;padding:12px;background:var(--card);border-radius:8px">
+      <div><b>Rating:</b> ★ ${d.rating?.toFixed(1)} &nbsp;|&nbsp; <b>Total Rides:</b> ${d.total_rides} &nbsp;|&nbsp; <b>Status:</b> ${d.available ? '🟢 Online' : '🔴 Offline'}</div>
+      <div style="margin-top:4px"><b>Location:</b> ${d.lat?.toFixed(4)}, ${d.lng?.toFixed(4)}</div>
+    </div>
+  `, `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="saveDriver('${d.id}')">Save Changes</button>`);
+}
+async function saveDriver(id) {
+  await apiFetch(`/api/admin/drivers/${id}`, { method: 'PUT', body: JSON.stringify({ name: document.getElementById('dName').value, vehicle_name: document.getElementById('dVehicle').value, vehicle_plate: document.getElementById('dPlate').value, capacity: +document.getElementById('dCapacity').value, mode: document.getElementById('dMode').value, vehicle_type: document.getElementById('dType').value, license_no: document.getElementById('dLicense').value }) });
+  closeModal(); loadDrivers();
+}
+async function removeDriver(id) {
+  if (!confirm('Remove this driver?')) return;
+  await apiFetch(`/api/admin/drivers/${id}`, { method: 'DELETE' });
+  loadDrivers();
+}
+
+// ── Rides ──
+async function loadRides() {
+  try {
+    allRides = await apiFetch('/api/admin/rides?limit=200');
+    document.getElementById('rideCount').textContent = allRides.length;
+    renderRides(allRides);
+  } catch(e) { console.error(e); }
+}
+function renderRides(rides) {
+  document.getElementById('ridesTable').innerHTML = rides.map(r => `
+    <tr>
+      <td class="mono">${r.id?.slice(0,8)}</td>
+      <td class="truncate">${r.rider?.name || r.rider_id?.slice(0,8) || '-'}</td>
+      <td class="truncate">${r.provider?.name || 'Unassigned'}</td>
+      <td class="truncate">${r.pickup_name || '?'} → ${r.dropoff_name || '?'}</td>
+      <td>${r.mode === 'sea' ? '🚤' : '🚗'} ${r.vehicle_type}</td>
+      <td><span class="status-badge status-${r.status}">${r.status}</span></td>
+      <td>${r.distance_km?.toFixed(1) || '-'} km</td>
+      <td>${r.price_fjd ? 'FJD $' + r.price_fjd.toFixed(2) : '-'}</td>
+      <td>${r.surge?.toFixed(2) || '1.00'}x</td>
+      <td class="mono">${r.created_at ? new Date(r.created_at).toLocaleString() : '-'}</td>
+      <td>
+        ${r.status !== 'cancelled' && r.status !== 'completed' ? `<button class="btn btn-danger btn-sm" onclick="cancelRide('${r.id}')">Cancel</button>` : ''}
+      </td>
+    </tr>`).join('') || '<tr><td colspan="11" style="text-align:center;color:var(--text-muted)">No rides found</td></tr>';
+}
+function filterRides(filter, el) {
+  el.closest('.filters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderRides(filter === 'all' ? allRides : allRides.filter(r => r.status === filter));
+}
+async function cancelRide(id) {
+  if (!confirm('Cancel this ride?')) return;
+  await fetch(`${API}/api/rides/${id}/cancel`, { method: 'PUT', headers: authHeaders() });
+  loadRides(); loadDashboard();
+}
+
+// ── Locations ──
+async function loadLocations() {
+  try {
+    allLocations = await fetch(`${API}/api/locations`).then(r => r.json());
+    document.getElementById('locationCount').textContent = allLocations.length;
+    renderLocations(allLocations);
+  } catch(e) { console.error(e); }
+}
+function renderLocations(locs) {
+  document.getElementById('locationsTable').innerHTML = locs.map(l => `
+    <tr>
+      <td style="font-size:1.3rem">${l.icon}</td>
+      <td><b>${l.name}</b></td>
+      <td>${l.zone}</td>
+      <td class="mono">${l.lat.toFixed(4)}</td>
+      <td class="mono">${l.lng.toFixed(4)}</td>
+      <td>${l.modes.map(m => m === 'sea' ? '🚤' : '🚗').join(' ')}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="editLocation('${l.id}')">Edit</button></td>
+    </tr>`).join('');
+}
+function filterLocations(filter, el) {
+  el.closest('.filters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderLocations(filter === 'all' ? allLocations : allLocations.filter(l => l.zone === filter));
+}
+function editLocation(id) {
+  const l = allLocations.find(x => x.id === id);
+  if (!l) return;
+  openModal('Edit Location', `
+    <label>Name</label><input value="${l.name}" id="lName">
+    <label>Icon (emoji)</label><input value="${l.icon}" id="lIcon">
+    <label>Zone</label><input value="${l.zone}" id="lZone">
+    <label>Latitude</label><input type="number" step="0.0001" value="${l.lat}" id="lLat">
+    <label>Longitude</label><input type="number" step="0.0001" value="${l.lng}" id="lLng">
+    <label>Modes (comma-separated)</label><input value="${l.modes.join(', ')}" id="lModes">
+  `, `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="saveLocation('${l.id}')">Save</button>`);
+}
+function saveLocation(id) {
+  const l = allLocations.find(x => x.id === id);
+  if (!l) return;
+  l.name = document.getElementById('lName').value;
+  l.icon = document.getElementById('lIcon').value;
+  l.zone = document.getElementById('lZone').value;
+  l.lat = +document.getElementById('lLat').value;
+  l.lng = +document.getElementById('lLng').value;
+  l.modes = document.getElementById('lModes').value.split(',').map(s => s.trim()).filter(Boolean);
+  closeModal(); renderLocations(allLocations);
+}
+
+// ── Vehicles ──
+async function loadVehicles() {
+  try {
+    vehicles = await fetch(`${API}/api/vehicles`).then(r => r.json());
+    renderVehicles('land', 'landVehicles');
+    renderVehicles('sea', 'seaVehicles');
+  } catch(e) { console.error(e); }
+}
+function renderVehicles(mode, elId) {
+  const v = vehicles[mode] || {};
+  const FEATURE_ICONS = { 'ac':'❄️','music':'🎵','phone-charger':'🔌','wifi':'📶','water':'💧','luggage':'🧳','life-jacket':'🦺','snorkel-gear':'🤿','cooler':'🧊','fishing-gear':'🎣','sun-deck':'☀️','captain':'👨‍✈️','cafe':'☕','restroom':'🚻','deck':'🛳️','bar':'🍸','cabin':'🛏️' };
+  document.getElementById(elId).innerHTML = Object.entries(v).map(([k, car]) => {
+    const feats = (car.features || []).map(f => `<span style="display:inline-block;padding:1px 5px;border-radius:999px;background:rgba(0,180,216,0.12);color:var(--accent);font-size:.6rem;margin:1px">${FEATURE_ICONS[f]||''} ${f}</span>`).join(' ');
+    return `
+    <tr>
+      <td><b>${car.emoji} ${car.name}</b><br><small style="color:var(--text-muted)">${car.desc}</small></td>
+      <td>FJD $${car.base.toFixed(2)}</td>
+      <td>$${car.perKm.toFixed(2)}</td>
+      <td>$${car.perMin.toFixed(2)}</td>
+      <td>$${car.min.toFixed(2)}</td>
+      <td>${car.cap} pax</td>
+      <td>${feats}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Revenue ──
+async function loadRevenue() {
+  try {
+    const rides = allRides.filter(r => r.status === 'completed');
+    const today = new Date().toISOString().split('T')[0];
+    const todayRides = rides.filter(r => r.completed_at?.startsWith(today));
+    const totalRevenue = rides.reduce((s, r) => s + (r.price_fjd || 0), 0);
+    const todayRevenue = todayRides.reduce((s, r) => s + (r.price_fjd || 0), 0);
+    const avgFare = rides.length ? totalRevenue / rides.length : 0;
+
+    document.getElementById('revenueStats').innerHTML = `
+      <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-value">FJD $${totalRevenue.toFixed(2)}</div><div class="stat-label">Total Revenue</div></div>
+      <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-value">FJD $${todayRevenue.toFixed(2)}</div><div class="stat-label">Today</div></div>
+      <div class="stat-card purple"><div class="stat-icon">📊</div><div class="stat-value">FJD $${avgFare.toFixed(2)}</div><div class="stat-label">Average Fare</div></div>
+      <div class="stat-card orange"><div class="stat-icon">🛣️</div><div class="stat-value">${rides.length}</div><div class="stat-label">Total Completed</div></div>`;
+
+    const byDate = {};
+    rides.forEach(r => {
+      const d = r.completed_at?.split('T')[0] || 'unknown';
+      if (!byDate[d]) byDate[d] = { rides: 0, revenue: 0 };
+      byDate[d].rides++;
+      byDate[d].revenue += r.price_fjd || 0;
+    });
+    document.getElementById('revenueTable').innerHTML = Object.entries(byDate).sort((a,b) => b[0].localeCompare(a[0])).map(([date, data]) => `
+      <tr>
+        <td class="mono">${date}</td>
+        <td>${data.rides}</td>
+        <td>FJD $${data.revenue.toFixed(2)}</td>
+        <td>FJD $${(data.revenue / data.rides).toFixed(2)}</td>
+      </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">No completed rides</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+// ── Pricing ──
+async function loadPricing() {
+  try {
+    const pricing = await apiFetch('/api/admin/pricing');
+    renderPricing(pricing);
+  } catch(e) { console.error(e); }
+}
+function renderPricing(p) {
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">';
+  for (const [mode, vehicles] of Object.entries(p.vehicles || {})) {
+    html += `<div class="data-card"><div class="data-card-header"><h3>${mode === 'sea' ? '🚤 Sea' : '🚗 Land'} Vehicles</h3></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>Type</th><th>Base (FJD)</th><th>Per Km</th><th>Per Min</th><th>Min Fare</th></tr></thead><tbody>`;
+    for (const [k, v] of Object.entries(vehicles)) {
+      html += `<tr><td><b>${k}</b></td><td>${v.base}</td><td>${v.perKm}</td><td>${v.perMin}</td><td>${v.min}</td></tr>`;
+    }
+    html += '</tbody></table></div></div>';
+  }
+  html += '</div>';
+  html += '<div class="data-card" style="margin-top:20px"><div class="data-card-header"><h3>Zone Multipliers</h3></div><div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">';
+  for (const [zone, mult] of Object.entries(p.zoneMultipliers || {})) {
+    html += `<div style="background:var(--card);padding:12px;border-radius:8px"><div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase">${zone}</div><div style="font-size:1.2rem;font-weight:700;color:var(--accent)">${mult}x</div></div>`;
+  }
+  html += '</div></div>';
+  document.getElementById('pricingContent').innerHTML = html;
+}
+
+// ── Map ──
+function saveSmtpConfig() {
+  const config = {
+    host: document.getElementById('smtp-host').value,
+    port: document.getElementById('smtp-port').value,
+    user: document.getElementById('smtp-user').value,
+    pass: document.getElementById('smtp-pass').value,
+  };
+  localStorage.setItem('pb_smtp_config', JSON.stringify(config));
+  alert('SMTP config saved locally. Set these as env vars on the server:\n\nSMTP_HOST=' + config.host + '\nSMTP_PORT=' + config.port + '\nSMTP_USER=' + config.user + '\nSMTP_PASS=' + config.pass + '\n\nThen restart the server.');
+}
+function testSmtpEmail() {
+  const email = prompt('Enter email to send test:');
+  if (!email) return;
+  fetch(`${API}/api/test-email`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ to: email })
+  }).then(r => r.json()).then(d => {
+    alert(d.sent ? 'Test email sent! Check inbox.' : 'Email logged to console (SMTP not configured). Check server terminal.');
+  }).catch(e => alert('Error: ' + e.message));
+}
+function loadDbStats() {
+  apiFetch('/api/admin/stats').then(d => {
+    document.getElementById('dbStats').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>👥 Users: <b>${d.users || 0}</b></div>
+        <div>🚗 Drivers: <b>${d.drivers || 0}</b></div>
+        <div>📋 Applications: <b>${d.applications || 0}</b></div>
+        <div>🛣️ Rides: <b>${d.rides || 0}</b></div>
+        <div>📍 Locations: <b>${d.locations || 0}</b></div>
+        <div>📸 Posts: <b>${d.posts || 0}</b></div>
+        <div>⭐ Reviews: <b>${d.reviews || 0}</b></div>
+        <div>🔔 Notifications: <b>${d.notifications || 0}</b></div>
+      </div>`;
+  }).catch(() => { document.getElementById('dbStats').textContent = 'Could not load stats'; });
+}
+
+function initAdminMap() {
+  if (adminMap) { adminMap.invalidateSize(); return; }
+  adminMap = L.map('admin-map').setView([-17.8, 177.9], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(adminMap);
+  refreshMap();
+}
+function refreshMap() {
+  if (!adminMap) return;
+  allLocations.forEach(l => {
+    L.marker([l.lat, l.lng]).addTo(adminMap).bindPopup(`<b>${l.icon} ${l.name}</b><br>${l.zone}`);
+  });
+  allDrivers.filter(d => d.available).forEach(d => {
+    L.circleMarker([d.lat, d.lng], { radius: 8, fillColor: '#10b981', fillOpacity: 0.8, color: '#fff', weight: 2 }).addTo(adminMap)
+      .bindPopup(`<b>🚗 ${d.name}</b><br>${d.vehicle_name} (${d.vehicle_plate})`);
+  });
+  document.getElementById('mapOnline').textContent = allDrivers.filter(d => d.available).length;
+  document.getElementById('mapLocations').textContent = allLocations.length;
+}
+
+// ── Modal ──
+function openModal(title, body, actions) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalActions').innerHTML = actions || '';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+
+// ── Save Pricing (stub) ──
+function savePricing() { alert('Pricing saved! (Demo mode — changes are not persisted)'); }
+</script>
+</body>
+</html>
