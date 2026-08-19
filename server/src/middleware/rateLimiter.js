@@ -1,8 +1,17 @@
 const rateLimit = require('express-rate-limit');
 
+function getClientKey(req) {
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) {
+    return `user:${auth.slice(7, 20)}`;
+  }
+  return req.ip || req.connection?.remoteAddress || 'unknown';
+}
+
 const loginLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 10,
+  keyGenerator: getClientKey,
   message: { error: 'Too many login attempts. Please try again in 1 minute.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -10,7 +19,8 @@ const loginLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 300,
+  keyGenerator: getClientKey,
   message: { error: 'Too many requests. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -18,7 +28,8 @@ const apiLimiter = rateLimit({
 
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 20,
+  max: 30,
+  keyGenerator: getClientKey,
   message: { error: 'AI assistant rate limit reached. Please wait a moment.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -26,7 +37,8 @@ const aiLimiter = rateLimit({
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 15,
+  keyGenerator: getClientKey,
   message: { error: 'Too many payment requests.' },
   standardHeaders: true,
   legacyHeaders: false,

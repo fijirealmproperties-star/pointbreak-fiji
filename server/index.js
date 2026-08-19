@@ -432,11 +432,22 @@ async function startServer() {
   // ── Express App ───────────────────────────────────────────
   const app = express();
   const server = http.createServer(app);
-  const io = new Server(server, { cors: { origin: '*' } });
+  const io = new Server(server, {
+    cors: { origin: '*' },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket', 'polling'],
+  });
 
+  app.set('trust proxy', true);
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'] }));
-  app.use(express.json({ limit: '10mb' }));
+  app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cache-Control', 'Pragma'],
+    credentials: true,
+  }));
+  app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
   app.use(apiLimiter);
   app.use(auditMiddleware);
 
