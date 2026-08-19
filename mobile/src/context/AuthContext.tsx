@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRefreshToken(session.refreshToken);
         setAccessTokenState(session.accessToken);
         setUser(session.user as User);
-        connectSocket();
-        connectSocket().emit("rider:join", session.user.id);
+        const sock = connectSocket();
+        sock.emit("rider:join", session.user.id);
       }
       setLoading(false);
     })();
@@ -48,8 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessTokenState(session.accessToken);
     setUser(session.user as User);
     await setJson("session", session);
-    connectSocket();
-    connectSocket().emit(session.user.role === "driver" ? "provider:join" : "rider:join", session.user.id);
+    const sock = connectSocket();
+    sock.emit(session.user.role === "driver" ? "provider:join" : "rider:join", session.user.id);
   }, []);
 
   const logout = useCallback(async () => {

@@ -55,7 +55,7 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
   const [configured, setConfigured] = useState(false);
   const [connected, setConnected] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [discovering, setDiscovering] = useState(true);
+  const [discovering, setDiscovering] = useState(false);
 
   const ping = useCallback(async (url: string) => {
     setChecking(true);
@@ -70,7 +70,6 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       setChecking(true);
-      setDiscovering(true);
 
       const stored = await getItem("serverUrl");
       const urls = stored
