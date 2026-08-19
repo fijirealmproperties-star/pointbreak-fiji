@@ -21,7 +21,7 @@ interface ServerContextValue {
 const ServerContext = createContext<ServerContextValue | null>(null);
 
 export function ServerProvider({ children }: { children: React.ReactNode }) {
-  const [serverUrl, setServerUrlState] = useState("https://and-cork-inner-obtain.trycloudflare.com");
+  const [serverUrl, setServerUrlState] = useState("https://washing-duchess-purge.ngrok-free.dev");
   const [configured, setConfigured] = useState(false);
   const [connected, setConnected] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -69,7 +69,7 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
 
   const resetServer = useCallback(async () => {
     disconnectSocket();
-    setServerUrlState("http://10.0.2.2:3001");
+    setServerUrlState("https://washing-duchess-purge.ngrok-free.dev");
     setConfigured(false);
     setConnected(false);
     await setItem("serverUrl", "");
