@@ -10,6 +10,7 @@ import { disconnectSocket } from "../api/socket";
 import { getItem, setItem } from "../storage";
 
 const DISCOVERY_URLS = [
+  "https://pointbreak-fiji.onrender.com",
   "https://washing-duchess-purge.ngrok-free.dev",
   "http://10.0.2.2:3001",
   "http://localhost:3001",

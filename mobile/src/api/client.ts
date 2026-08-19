@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-let baseUrl = "https://washing-duchess-purge.ngrok-free.dev";
+let baseUrl = "https://pointbreak-fiji.onrender.com";
 let token: string | null = null;
 let refreshTokenValue: string | null = null;
 
