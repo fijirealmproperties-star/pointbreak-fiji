@@ -297,6 +297,7 @@ function findZone(lat, lng) {
 // ── Main async bootstrap ─────────────────────────────────────
 async function startServer() {
   const Database = require('./src/config/database');
+  const fs = require('fs');
   const dataDir = process.env.DATA_DIR || __dirname;
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
   const db = new Database(path.join(dataDir, 'pointbreak.db'));
@@ -651,7 +652,6 @@ async function startServer() {
   });
 
   // ── FILE UPLOAD (photos) ───────────────────────────────
-  const fs = require('fs');
   const uploadDir = path.join(__dirname, '..', 'uploads');
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
   app.post('/api/upload', express.raw({ type: 'image/*', limit: '10mb' }), (req, res) => {
