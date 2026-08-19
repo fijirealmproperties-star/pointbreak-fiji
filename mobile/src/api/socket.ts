@@ -4,16 +4,21 @@ import { getBaseUrl } from "./client";
 let socket: Socket | null = null;
 
 export function connectSocket(): Socket {
-  if (socket) return socket;
+  if (socket?.connected) return socket;
+  if (socket) socket.disconnect();
+
   socket = io(getBaseUrl(), {
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: Infinity,
-    timeout: 10000,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 10000,
+    timeout: 20000,
     extraHeaders: {
       "ngrok-skip-browser-warning": "true",
     },
   });
+
   return socket;
 }
 

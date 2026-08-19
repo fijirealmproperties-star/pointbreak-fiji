@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { api, setAccessToken, StoredSession } from "../api/client";
+import { api, setAccessToken, setRefreshToken, StoredSession } from "../api/client";
 import { connectSocket, disconnectSocket } from "../api/socket";
 import { getJson, removeItem, setJson } from "../storage";
 import type { User } from "../types";
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const session = await getJson<StoredSession>("session");
       if (session?.accessToken && session.user) {
         setAccessToken(session.accessToken);
+        setRefreshToken(session.refreshToken);
         setAccessTokenState(session.accessToken);
         setUser(session.user as User);
         connectSocket();
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (session: StoredSession) => {
     setAccessToken(session.accessToken);
+    setRefreshToken(session.refreshToken);
     setAccessTokenState(session.accessToken);
     setUser(session.user as User);
     await setJson("session", session);
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     setAccessToken(null);
+    setRefreshToken(null);
     setAccessTokenState(null);
     setUser(null);
     await removeItem("session");

@@ -19,6 +19,7 @@ export class ApiError extends Error {
 
 let baseUrl = "https://washing-duchess-purge.ngrok-free.dev";
 let token: string | null = null;
+let refreshTokenValue: string | null = null;
 
 export function setBaseUrl(url: string) {
   baseUrl = url.replace(/\/+$/, "");
@@ -32,27 +33,75 @@ export function setAccessToken(t: string | null) {
   token = t;
 }
 
+export function setRefreshToken(t: string | null) {
+  refreshTokenValue = t;
+}
+
+const MAX_RETRIES = 2;
+const REQUEST_TIMEOUT = 15000;
+
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout = REQUEST_TIMEOUT,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
+  attempt = 0,
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
+    "Accept": "application/json",
   };
   const authToken = token ?? (await getJson<StoredSession>("session"))?.accessToken;
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
 
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}${path}`, {
+    res = await fetchWithTimeout(`${baseUrl}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-  } catch {
-    throw new ApiError(0, "Cannot reach server. Check your connection and server URL.");
+  } catch (err: any) {
+    if (attempt < MAX_RETRIES && (err.name === "AbortError" || err.message?.includes("Network"))) {
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      return request<T>(method, path, body, attempt + 1);
+    }
+    throw new ApiError(0, "Cannot reach server. Check your internet connection.");
+  }
+
+  if (res.status === 401 && refreshTokenValue && path !== "/api/auth/login" && path !== "/api/auth/refresh") {
+    try {
+      const refreshRes = await fetchWithTimeout(`${baseUrl}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refreshTokenValue }),
+      });
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        token = data.accessToken;
+        refreshTokenValue = data.refreshToken;
+        headers.Authorization = `Bearer ${token}`;
+        res = await fetchWithTimeout(`${baseUrl}${path}`, {
+          method,
+          headers,
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+      }
+    } catch {}
   }
 
   const text = await res.text();

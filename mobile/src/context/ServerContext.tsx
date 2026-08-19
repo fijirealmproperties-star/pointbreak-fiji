@@ -36,8 +36,17 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
 
   const ping = useCallback(async (url: string) => {
     try {
-      setBaseUrl(url);
-      await api.get<unknown[]>("/api/locations");
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      await fetch(`${url}/api/locations`, {
+        method: "GET",
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+          "Accept": "application/json",
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
       setConnected(true);
       return true;
     } catch {
@@ -47,6 +56,8 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
       setChecking(true);
       setDiscovering(true);
@@ -57,8 +68,9 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
         : DISCOVERY_URLS;
 
       for (const url of urls) {
+        if (cancelled) return;
         const ok = await ping(url);
-        if (ok) {
+        if (ok && !cancelled) {
           setServerUrlState(url);
           setBaseUrl(url);
           await setItem("serverUrl", url);
@@ -69,9 +81,13 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      setChecking(false);
-      setDiscovering(false);
+      if (!cancelled) {
+        setChecking(false);
+        setDiscovering(false);
+      }
     })();
+
+    return () => { cancelled = true; };
   }, []);
 
   const setServerUrl = useCallback(
@@ -81,6 +97,7 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
       const ok = await ping(normalized);
       if (ok) {
         setServerUrlState(normalized);
+        setBaseUrl(normalized);
         await setItem("serverUrl", normalized);
         setConfigured(true);
       }
@@ -93,6 +110,7 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
   const resetServer = useCallback(async () => {
     disconnectSocket();
     setServerUrlState(DISCOVERY_URLS[0]);
+    setBaseUrl(DISCOVERY_URLS[0]);
     setConfigured(false);
     setConnected(false);
     await setItem("serverUrl", "");
