@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -24,6 +26,8 @@ import { DriverRideScreen } from "./src/screens/driver/DriverRideScreen";
 import { DriverEarningsScreen } from "./src/screens/driver/DriverEarningsScreen";
 import { DriverProfileScreen } from "./src/screens/driver/DriverProfileScreen";
 
+SplashScreen.preventAutoHideAsync();
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const navTheme = {
@@ -41,9 +45,15 @@ const navTheme = {
 
 function Root() {
   const { user, loading } = useAuth();
-  const { configured, discovering } = useServer();
+  const { discovering } = useServer();
 
-  if (loading) return <Loading label="PointBreak Rides Fiji" />;
+  useEffect(() => {
+    if (!loading && !discovering) {
+      SplashScreen.hideAsync();
+    }
+  }, [loading, discovering]);
+
+  if (loading || discovering) return <Loading label="PointBreak Rides Fiji" />;
 
   const initialRoute: keyof RootStackParamList = user
     ? user.role === "driver"

@@ -6,7 +6,8 @@
   "build": {
     "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "ndk": "27.1.12297006"
       },
       "distribution": "internal"
     },
