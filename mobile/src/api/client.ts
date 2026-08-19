@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-let baseUrl = "http://10.0.2.2:3001";
+let baseUrl = "https://washing-duchess-purge.ngrok-free.dev";
 let token: string | null = null;
 
 export function setBaseUrl(url: string) {

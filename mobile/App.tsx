@@ -41,9 +41,9 @@ const navTheme = {
 
 function Root() {
   const { user, loading } = useAuth();
-  const { configured } = useServer();
+  const { configured, discovering } = useServer();
 
-  if (loading) return <Loading label="PointBreak Rides Fiji" />;
+  if (loading || discovering) return <Loading label="PointBreak Rides Fiji" />;
 
   const initialRoute: keyof RootStackParamList = !configured
     ? "Auth"

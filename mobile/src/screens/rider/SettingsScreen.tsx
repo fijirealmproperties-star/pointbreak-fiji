@@ -48,11 +48,11 @@ export function SettingsScreen() {
           onChangeText={setUrl}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="http://192.168.1.50:3001"
+          placeholder="https://your-server.ngrok-free.dev"
         />
         <Button title="Save & reconnect" onPress={save} loading={checking} />
         <Text style={styles.hint}>
-          Use your computer's LAN IP (find with `ipconfig` on Windows). Android emulator: http://10.0.2.2:3001
+          The app auto-discovers the server on startup. You can override it here if needed.
         </Text>
         <Button title="Reset app" onPress={reset} variant="danger" style={{ marginTop: 24 }} />
       </View>

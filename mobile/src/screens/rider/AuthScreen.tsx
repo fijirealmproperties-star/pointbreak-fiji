@@ -47,7 +47,11 @@ export function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serverInput, setServerInput] = useState(getBaseUrl());
-  const [showServer, setShowServer] = useState(false);
+  const [showServer, setShowServer] = useState(!connected);
+
+  React.useEffect(() => {
+    if (connected) setShowServer(false);
+  }, [connected]);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -222,15 +226,11 @@ export function AuthScreen() {
               <Input
                 value={serverInput}
                 onChangeText={setServerInput}
-                placeholder="http://192.168.1.50:3001"
+                placeholder="https://your-server-url.ngrok-free.dev"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               <Button title="Save & connect" onPress={saveServer} loading={loading} />
-              <Text style={styles.hintText}>
-                Use your computer's LAN IP so your phone can reach the API. Android
-                emulator: 10.0.2.2
-              </Text>
             </View>
           ) : null}
 
