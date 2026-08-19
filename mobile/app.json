@@ -25,8 +25,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#0a0e1a"
       },
-      "minSdkVersion": 24,
-      "targetSdkVersion": 34,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -49,12 +47,10 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true,
-            "minSdkVersion": 24,
-            "targetSdkVersion": 34
-          },
+        "usesCleartextTraffic": true
+      },
           "ios": {
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "16.4"
           }
         }
       ],
