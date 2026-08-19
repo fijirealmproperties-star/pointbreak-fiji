@@ -38,8 +38,8 @@ export function setRefreshToken(t: string | null) {
 }
 
 const MAX_RETRIES = 3;
-const BASE_TIMEOUT = 15000;
-const RETRY_DELAYS = [2000, 5000, 10000];
+const BASE_TIMEOUT = 30000;
+const RETRY_DELAYS = [3000, 6000, 12000];
 
 let lastNetworkQuality: "fast" | "slow" | "offline" = "fast";
 export function getNetworkQuality() {

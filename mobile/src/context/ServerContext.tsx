@@ -28,6 +28,28 @@ interface ServerContextValue {
 
 const ServerContext = createContext<ServerContextValue | null>(null);
 
+async function tryPing(url: string, timeoutMs: number): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${url}/api/locations`, {
+      method: "GET",
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+        "Accept": "application/json",
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return false;
+    const text = await res.text();
+    try { JSON.parse(text); } catch { return false; }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function ServerProvider({ children }: { children: React.ReactNode }) {
   const [serverUrl, setServerUrlState] = useState(DISCOVERY_URLS[0]);
   const [configured, setConfigured] = useState(false);
@@ -36,24 +58,11 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
   const [discovering, setDiscovering] = useState(true);
 
   const ping = useCallback(async (url: string) => {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8000);
-      await fetch(`${url}/api/locations`, {
-        method: "GET",
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-          "Accept": "application/json",
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      setConnected(true);
-      return true;
-    } catch {
-      setConnected(false);
-      return false;
-    }
+    setChecking(true);
+    const ok = await tryPing(url, 40000);
+    setConnected(ok);
+    setChecking(false);
+    return ok;
   }, []);
 
   useEffect(() => {
@@ -70,12 +79,16 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
 
       for (const url of urls) {
         if (cancelled) return;
-        const ok = await ping(url);
+
+        const timeout = url.includes("onrender.com") ? 40000 : 10000;
+        const ok = await tryPing(url, timeout);
+
         if (ok && !cancelled) {
           setServerUrlState(url);
           setBaseUrl(url);
           await setItem("serverUrl", url);
           setConfigured(true);
+          setConnected(true);
           setChecking(false);
           setDiscovering(false);
           return;
@@ -95,17 +108,21 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
     async (url: string) => {
       const normalized = url.replace(/\/+$/, "");
       setChecking(true);
-      const ok = await ping(normalized);
+      const timeout = normalized.includes("onrender.com") ? 40000 : 10000;
+      const ok = await tryPing(normalized, timeout);
       if (ok) {
         setServerUrlState(normalized);
         setBaseUrl(normalized);
         await setItem("serverUrl", normalized);
         setConfigured(true);
+        setConnected(true);
+      } else {
+        setConnected(false);
       }
       setChecking(false);
       return ok;
     },
-    [ping],
+    [],
   );
 
   const resetServer = useCallback(async () => {

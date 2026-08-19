@@ -43,15 +43,13 @@ function Root() {
   const { user, loading } = useAuth();
   const { configured, discovering } = useServer();
 
-  if (loading || discovering) return <Loading label="PointBreak Rides Fiji" />;
+  if (loading) return <Loading label="PointBreak Rides Fiji" />;
 
-  const initialRoute: keyof RootStackParamList = !configured
-    ? "Auth"
-    : user
-      ? user.role === "driver"
-        ? "DriverTabs"
-        : "RiderTabs"
-      : "Auth";
+  const initialRoute: keyof RootStackParamList = user
+    ? user.role === "driver"
+      ? "DriverTabs"
+      : "RiderTabs"
+    : "Auth";
 
   return (
     <NavigationContainer theme={navTheme}>

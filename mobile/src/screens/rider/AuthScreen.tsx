@@ -41,7 +41,7 @@ const VEHICLE_TYPES = {
 
 export function AuthScreen() {
   const { login } = useAuth();
-  const { configured, connected, setServerUrl } = useServer();
+  const { configured, connected, checking, discovering, setServerUrl } = useServer();
   const [tab, setTab] = useState<Tab>("rider");
   const [mode, setMode] = useState<Mode>("login");
   const [loading, setLoading] = useState(false);
@@ -80,6 +80,7 @@ export function AuthScreen() {
       return;
     }
     setLoading(true);
+    setError("Connecting... first request may take 30 seconds");
     try {
       const body: Record<string, string> = { phone };
       if (password) body.password = password;
@@ -99,6 +100,7 @@ export function AuthScreen() {
       return;
     }
     setLoading(true);
+    setError("Connecting... first request may take 30 seconds");
     try {
       const body: Record<string, unknown> = {
         name,
@@ -166,6 +168,7 @@ export function AuthScreen() {
     setError(null);
     setPhone(demoPhone);
     setLoading(true);
+    setError("Waking up server... first login may take 30 seconds");
     try {
       const data = await api.post<StoredSession>("/api/auth/otp/verify", {
         phone: demoPhone,
@@ -215,7 +218,11 @@ export function AuthScreen() {
             </Text>
             <Pressable onPress={() => setShowServer((s) => !s)} hitSlop={10}>
               <Text style={styles.serverHint}>
-                {configured && connected ? `● Connected to ${getBaseUrl()}` : "○ Configure server"}
+                {checking || discovering
+                  ? "⏳ Connecting to server..."
+                  : connected
+                    ? `● Connected`
+                    : "○ Configure server"}
               </Text>
             </Pressable>
           </View>
