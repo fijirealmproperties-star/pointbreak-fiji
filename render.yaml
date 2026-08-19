@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: pointbreak-fiji
+    runtime: node
+    region: oceania
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production

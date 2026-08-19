@@ -297,7 +297,9 @@ function findZone(lat, lng) {
 // ── Main async bootstrap ─────────────────────────────────────
 async function startServer() {
   const Database = require('./src/config/database');
-  const db = new Database(path.join(__dirname, 'pointbreak.db'));
+  const dataDir = process.env.DATA_DIR || __dirname;
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+  const db = new Database(path.join(dataDir, 'pointbreak.db'));
   await db.ready;
 
   const authRoutes = require('./src/routes/auth');
