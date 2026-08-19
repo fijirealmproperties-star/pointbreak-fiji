@@ -10,6 +10,9 @@ export function connectSocket(): Socket {
     reconnection: true,
     reconnectionAttempts: Infinity,
     timeout: 10000,
+    extraHeaders: {
+      "ngrok-skip-browser-warning": "true",
+    },
   });
   return socket;
 }

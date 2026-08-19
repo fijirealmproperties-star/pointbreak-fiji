@@ -39,6 +39,7 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
   };
   const authToken = token ?? (await getJson<StoredSession>("session"))?.accessToken;
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
