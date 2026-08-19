@@ -5,7 +5,7 @@ services:
     region: oceania
     plan: free
     buildCommand: npm install
-    startCommand: node server/index.js
+    startCommand: npm start
     envVars:
       - key: JWT_SECRET
         generateValue: true

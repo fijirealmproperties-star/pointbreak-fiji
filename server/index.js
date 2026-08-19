@@ -533,7 +533,7 @@ async function startServer() {
     db.prepare("UPDATE driver_applications SET status='approved', reviewed_at=CURRENT_TIMESTAMP, admin_notes=? WHERE id=?").run(req.body.notes || null, req.params.id);
     const userId = app.user_id || `driver-${Date.now().toString(36)}`;
     if (!app.user_id) {
-      const hashedPw = require('bcrypt').hashSync('default', 10);
+      const hashedPw = require('bcryptjs').hashSync('default', 10);
       db.prepare('INSERT OR IGNORE INTO users (id, name, phone, email, role, password_hash) VALUES (?,?,?,?,?,?)').run(userId, app.name, app.phone, app.email, 'driver', hashedPw);
     }
     const provId = `prov-${Date.now().toString(36)}`;
