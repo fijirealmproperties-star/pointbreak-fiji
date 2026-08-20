@@ -25,6 +25,7 @@
     "android": {
       "package": "com.pointbreak.ridesfiji",
       "versionCode": 4,
+      "label": "PointBreak",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0e1a"
