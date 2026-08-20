@@ -46,10 +46,18 @@ function Root() {
   const prevUser = useRef(user);
 
   useEffect(() => {
-    if (prevUser.current && !user && navRef.current) {
+    if (!navRef.current) return;
+
+    if (prevUser.current && !user) {
       navRef.current.reset({
         index: 0,
         routes: [{ name: "Auth" }],
+      });
+    } else if (!prevUser.current && user) {
+      const route: keyof RootStackParamList = user.role === "driver" ? "DriverTabs" : "RiderTabs";
+      navRef.current.reset({
+        index: 0,
+        routes: [{ name: route }],
       });
     }
     prevUser.current = user;
