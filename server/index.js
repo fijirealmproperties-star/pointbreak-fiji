@@ -449,6 +449,10 @@ async function startServer() {
     credentials: true,
   }));
   app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
+
+  // ── Health check (bypass rate limiter) ─────────────────────
+  app.get('/api/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
   app.use(apiLimiter);
   app.use(auditMiddleware);
 

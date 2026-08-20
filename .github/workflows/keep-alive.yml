@@ -1,0 +1,17 @@
+name: Keep Render Awake
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render
+        run: |
+          for i in 1 2 3; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://pointbreak-fiji.onrender.com/api/health")
+            echo "Attempt $i: HTTP $status"
+            if [ "$status" = "200" ]; then echo "Server is awake"; break; fi
+            sleep 10
+          done
