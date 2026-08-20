@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -41,6 +42,18 @@ const navTheme = {
 
 function Root() {
   const { user, loading } = useAuth();
+  const navRef = useRef<any>(null);
+  const prevUser = useRef(user);
+
+  useEffect(() => {
+    if (prevUser.current && !user && navRef.current) {
+      navRef.current.reset({
+        index: 0,
+        routes: [{ name: "Auth" }],
+      });
+    }
+    prevUser.current = user;
+  }, [user]);
 
   if (loading) return <Loading label="PointBreak Rides Fiji" />;
 
@@ -51,7 +64,7 @@ function Root() {
     : "Auth";
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navRef} theme={navTheme}>
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
