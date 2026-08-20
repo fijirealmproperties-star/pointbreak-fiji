@@ -49,7 +49,6 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [devCode, setDevCode] = useState("");
 
   // Driver vehicle fields
   const [vMode, setVMode] = useState<"land" | "sea">("land");
@@ -124,7 +123,6 @@ export function AuthScreen() {
     try {
       const data = await api.post<{ _dev_code?: string }>("/api/auth/otp/send", { phone });
       setOtpSent(true);
-      setDevCode(data._dev_code ?? "");
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -145,24 +143,6 @@ export function AuthScreen() {
       const data = await api.post<StoredSession>("/api/auth/otp/verify", {
         phone,
         code: finalCode,
-      });
-      finish(data);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const demoLogin = async (demoPhone: string) => {
-    setError(null);
-    setPhone(demoPhone);
-    setLoading(true);
-    setError("Waking up server... first login may take 30 seconds");
-    try {
-      const data = await api.post<StoredSession>("/api/auth/otp/verify", {
-        phone: demoPhone,
-        code: "123456",
       });
       finish(data);
     } catch (e) {
@@ -224,13 +204,6 @@ export function AuthScreen() {
                 keyboardType="number-pad"
                 maxLength={6}
               />
-              {devCode ? (
-                <Pressable onPress={() => verifyOtp(devCode)} style={styles.devCode}>
-                  <Text style={styles.devCodeText}>
-                    Dev code: {devCode} — tap to auto-verify
-                  </Text>
-                </Pressable>
-              ) : null}
               <Button
                 title="Verify & continue"
                 onPress={() => verifyOtp()}
@@ -265,15 +238,6 @@ export function AuthScreen() {
               <Pressable onPress={() => setMode("signup")} style={styles.linkBtn}>
                 <Text style={styles.link}>New here? Create account</Text>
               </Pressable>
-              {tab === "rider" ? (
-                <Pressable onPress={() => demoLogin("+6798720502")} style={styles.demoBtn}>
-                  <Text style={styles.demoText}>⚡ Demo rider login (no password)</Text>
-                </Pressable>
-              ) : (
-                <Pressable onPress={() => demoLogin("+6799283764")} style={styles.demoBtn}>
-                  <Text style={styles.demoText}>⚡ Demo driver login (no password)</Text>
-                </Pressable>
-              )}
             </View>
           ) : (
             <View style={styles.form}>
@@ -399,23 +363,6 @@ const styles = StyleSheet.create({
   error: { color: theme.danger, fontSize: 13, marginBottom: 10 },
   linkBtn: { paddingVertical: 12, alignItems: "center" },
   link: { color: theme.accentBright, fontSize: 14, fontWeight: "600" },
-  demoBtn: {
-    marginTop: 6,
-    backgroundColor: theme.successSoft,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  demoText: { color: theme.success, fontSize: 13, fontWeight: "700" },
-  devCode: {
-    backgroundColor: theme.warningSoft,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-    alignItems: "center",
-  },
-  devCodeText: { color: theme.warning, fontSize: 13, fontWeight: "700" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
   chip: {
     backgroundColor: theme.surfaceAlt,
