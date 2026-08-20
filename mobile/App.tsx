@@ -2,7 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ServerProvider, useServer } from "./src/context/ServerContext";
+import { ServerProvider } from "./src/context/ServerContext";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { Loading } from "./src/components/Loading";
 import { theme } from "./src/theme";
