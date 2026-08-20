@@ -12,14 +12,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
-import { useServer } from "../../context/ServerContext";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Segmented } from "../../components/Segmented";
 import { api, StoredSession } from "../../api/client";
 import { theme } from "../../theme";
-import { getBaseUrl } from "../../api/client";
-import { setItem } from "../../storage";
 
 type Tab = "rider" | "driver";
 type Mode = "login" | "signup" | "otp";
@@ -41,17 +38,10 @@ const VEHICLE_TYPES = {
 
 export function AuthScreen() {
   const { login } = useAuth();
-  const { configured, connected, checking, discovering, setServerUrl } = useServer();
   const [tab, setTab] = useState<Tab>("rider");
   const [mode, setMode] = useState<Mode>("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [serverInput, setServerInput] = useState(getBaseUrl());
-  const [showServer, setShowServer] = useState(!connected);
-
-  React.useEffect(() => {
-    if (connected) setShowServer(false);
-  }, [connected]);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -182,14 +172,6 @@ export function AuthScreen() {
     }
   };
 
-  const saveServer = async () => {
-    setError(null);
-    setLoading(true);
-    const ok = await setServerUrl(serverInput);
-    if (!ok) setError("Could not reach server at that URL. Check it's running and the IP is correct.");
-    setLoading(false);
-  };
-
   const resetMode = () => {
     setMode("login");
     setOtpSent(false);
@@ -216,30 +198,7 @@ export function AuthScreen() {
             <Text style={styles.tagline}>
               Ride, boat & charter across every island 🌊
             </Text>
-            <Pressable onPress={() => setShowServer((s) => !s)} hitSlop={10}>
-              <Text style={styles.serverHint}>
-                {checking || discovering
-                  ? "⏳ Connecting to server..."
-                  : connected
-                    ? `● Connected`
-                    : "○ Configure server"}
-              </Text>
-            </Pressable>
           </View>
-
-          {showServer ? (
-            <View style={styles.serverCard}>
-              <Text style={styles.sectionLabel}>Server address</Text>
-              <Input
-                value={serverInput}
-                onChangeText={setServerInput}
-                placeholder="https://your-server-url.ngrok-free.dev"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Button title="Save & connect" onPress={saveServer} loading={loading} />
-            </View>
-          ) : null}
 
           <Segmented
             options={[
@@ -429,16 +388,6 @@ const styles = StyleSheet.create({
   logoEmoji: { fontSize: 40 },
   brand: { color: theme.text, fontSize: 24, fontWeight: "900", letterSpacing: 0.3 },
   tagline: { color: theme.textMuted, fontSize: 13, marginTop: 6 },
-  serverHint: { color: theme.accentBright, fontSize: 12, marginTop: 14, fontWeight: "600" },
-  serverCard: {
-    backgroundColor: theme.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.border,
-    padding: 14,
-    marginBottom: 18,
-  },
-  hintText: { color: theme.textFaint, fontSize: 11, marginTop: 8, lineHeight: 16 },
   sectionLabel: {
     color: theme.text,
     fontSize: 16,
