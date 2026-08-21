@@ -1,0 +1,27 @@
+{
+  "name": "pointbreak-rides-fiji",
+  "version": "1.0.0",
+  "description": "PointBreak Rides Fiji",
+  "author": "PointBreak",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable --config.win.signAndEditExecutable=false"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.pointbreak.ridesfiji",
+    "productName": "PointBreak Rides Fiji",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js"],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "../mobile/assets/icon.png"
+    },
+    "asarUnpack": ["**/*"]
+  }
+}

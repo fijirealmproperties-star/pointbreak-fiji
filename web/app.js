@@ -2,7 +2,7 @@
    PointBreak Rides Fiji — App Logic (Leaflet + OpenStreetMap)
    ═══════════════════════════════════════════════════════════ */
 
-const API_BASE = window.location.port === '3001' ? '' : 'http://localhost:3001';
+const API_BASE = '';
 const FIJI_CENTER = [-17.8, 177.9];
 const FIJI_ZOOM = 8;
 const OSM_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -1048,8 +1048,8 @@ async function triggerSOS() {
 function shareRide() {
   if (!state.currentRide) return;
   const url = `${API_BASE}/ride/${state.currentRide.id}`;
-  if (navigator.clipboard) { navigator.clipboard.writeText(url); alert('\uD83D\uDCE4 Ride link copied!\n' + url); }
-  else prompt('Share this ride link:', url);
+  if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => alert('\uD83D\uDCE4 Ride link copied!\n' + url)).catch(() => alert('Link: ' + url)); }
+  else alert('Ride link: ' + url);
 }
 function callDriver() { alert('\uD83D\uDCDE Calling driver...'); }
 function messageDriver() { alert('\uD83D\uDCAC Opening chat...'); }
@@ -1348,9 +1348,10 @@ function logout() {
   localStorage.removeItem('pb_session');
   state.user = null; state.token = null;
   document.getElementById('app').classList.add('hidden');
-  showScreen('auth');
+  showScreen('auth-screen');
   if (notifPolling) clearInterval(notifPolling);
 }
+function showWallet() { showSection('wallet'); }
 
 // ═══════════ TRANSLATION / i18n ═══════════
 const COUNTRIES = [
@@ -1533,11 +1534,19 @@ function likePost(id) {
 }
 function sharePost(id) {
   if (navigator.share) navigator.share({ title: 'PointBreak Fiji', text: 'Check out this post!', url: window.location.href });
+  else if (navigator.clipboard) { navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!')); }
 }
 function openComments(postId) {
-  const comment = prompt('Add a comment:');
-  if (!comment) return;
-  api(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ user_id: state.user?.id, user_name: state.user?.name, comment }) }).then(() => alert('Comment added!'));
+  const commentEl = document.createElement('div');
+  commentEl.innerHTML = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center"><div style="background:#1a2332;border-radius:12px;padding:20px;width:90%;max-width:380px"><h3 style="margin:0 0 12px;color:var(--accent)">Add a Comment</h3><textarea id="prompt-comment" rows="3" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(0,180,216,0.2);border-radius:8px;padding:10px;color:#EAF6FF;font-size:.9rem;box-sizing:border-box" placeholder="Write your comment..."></textarea><div style="display:flex;gap:8px;margin-top:12px"><button onclick="this.closest(\'div[style]\').remove()" style="flex:1;padding:10px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:#94a3b8;cursor:pointer">Cancel</button><button id="prompt-submit" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#0a1628;font-weight:600;cursor:pointer">Post</button></div></div></div>';
+  document.body.appendChild(commentEl);
+  document.getElementById('prompt-submit').onclick = function() {
+    const val = document.getElementById('prompt-comment').value;
+    commentEl.remove();
+    if (!val) return;
+    api(`/api/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ user_id: state.user?.id, user_name: state.user?.name, comment: val }) }).then(() => alert('Comment added!'));
+  };
+  document.getElementById('prompt-comment').focus();
 }
 
 // ═══════════ DESTINATION REVIEWS ═══════════
