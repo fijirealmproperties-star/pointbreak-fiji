@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -17,6 +17,7 @@ import { Input } from "../../components/Input";
 import { Segmented } from "../../components/Segmented";
 import { api, StoredSession } from "../../api/client";
 import { theme } from "../../theme";
+import { detectCountry, toE164 } from "../../utils/phoneDetect";
 
 type Tab = "rider" | "driver";
 type Mode = "login" | "signup" | "otp";
@@ -50,6 +51,8 @@ export function AuthScreen() {
   const [code, setCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
 
+  const detectedCountry = useMemo(() => detectCountry(phone), [phone]);
+
   // Driver vehicle fields
   const [vMode, setVMode] = useState<"land" | "sea">("land");
   const [vType, setVType] = useState("taxi");
@@ -71,7 +74,8 @@ export function AuthScreen() {
     setLoading(true);
     setError("Connecting... first request may take 30 seconds");
     try {
-      const body: Record<string, string> = { phone };
+      const e164 = toE164(phone, detectedCountry);
+      const body: Record<string, string> = { phone: e164 };
       if (password) body.password = password;
       const data = await api.post<StoredSession>("/api/auth/login", body);
       finish(data);
@@ -91,9 +95,10 @@ export function AuthScreen() {
     setLoading(true);
     setError("Connecting... first request may take 30 seconds");
     try {
+      const e164 = toE164(phone, detectedCountry);
       const body: Record<string, unknown> = {
         name,
-        phone,
+        phone: e164,
         email: email || undefined,
         password: password || undefined,
         role,
@@ -121,7 +126,8 @@ export function AuthScreen() {
     }
     setLoading(true);
     try {
-      const data = await api.post<{ _dev_code?: string }>("/api/auth/otp/send", { phone });
+      const e164 = toE164(phone, detectedCountry);
+      const data = await api.post<{ _dev_code?: string }>("/api/auth/otp/send", { phone: e164 });
       setOtpSent(true);
       setError(null);
     } catch (e) {
@@ -140,8 +146,9 @@ export function AuthScreen() {
     }
     setLoading(true);
     try {
+      const e164 = toE164(phone, detectedCountry);
       const data = await api.post<StoredSession>("/api/auth/otp/verify", {
-        phone,
+        phone: e164,
         code: finalCode,
       });
       finish(data);
@@ -195,7 +202,7 @@ export function AuthScreen() {
           {mode === "otp" ? (
             <View style={styles.form}>
               <Text style={styles.sectionLabel}>
-                Verify {phone}
+                Verify {detectedCountry.flag} {detectedCountry.dial} {phone}
               </Text>
               <Input
                 value={code}
@@ -216,11 +223,17 @@ export function AuthScreen() {
           ) : mode === "login" ? (
             <View style={styles.form}>
               <Text style={styles.sectionLabel}>Welcome back</Text>
+              <View style={styles.countryRow}>
+                <Text style={styles.countryBadge}>
+                  {detectedCountry.flag} {detectedCountry.dial}
+                </Text>
+                <Text style={styles.countryName}>{detectedCountry.name}</Text>
+              </View>
               <Input
                 label="Phone"
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="+679 000 0000"
+                placeholder="e.g. 712 3456"
                 keyboardType="phone-pad"
               />
               <Input
@@ -250,11 +263,17 @@ export function AuthScreen() {
                 onChangeText={setName}
                 placeholder="e.g. Sera Naidu"
               />
+              <View style={styles.countryRow}>
+                <Text style={styles.countryBadge}>
+                  {detectedCountry.flag} {detectedCountry.dial}
+                </Text>
+                <Text style={styles.countryName}>{detectedCountry.name}</Text>
+              </View>
               <Input
                 label="Phone"
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="+679 000 0000"
+                placeholder="e.g. 712 3456"
                 keyboardType="phone-pad"
               />
               <Input
@@ -361,6 +380,29 @@ const styles = StyleSheet.create({
   },
   form: { marginTop: 14 },
   error: { color: theme.danger, fontSize: 13, marginBottom: 10 },
+  countryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
+  },
+  countryBadge: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.text,
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    overflow: "hidden",
+  },
+  countryName: {
+    fontSize: 12,
+    color: theme.textMuted,
+    fontWeight: "500",
+  },
   linkBtn: { paddingVertical: 12, alignItems: "center" },
   link: { color: theme.accentBright, fontSize: 14, fontWeight: "600" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
