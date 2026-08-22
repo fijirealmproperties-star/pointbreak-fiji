@@ -81,21 +81,11 @@
       <div class="input-group">
         <label>Password</label>
         <input type="password" id="login-password" placeholder="Enter password">
-        <small class="input-hint">Leave blank for demo accounts</small>
       </div>
       <button type="submit" class="btn-primary btn-full">
         <span>Bula! Let's Ride</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-7-7l7 7-7 7"/></svg>
       </button>
-      <div class="demo-accounts">
-        <p>Quick Demo Access</p>
-        <button type="button" class="btn-demo" onclick="demoLogin('rider')">
-          <span>🧑</span> Ride as Passenger
-        </button>
-        <button type="button" class="btn-demo btn-demo-driver" onclick="demoLogin('driver')">
-          <span>🚗</span> Drive for PointBreak
-        </button>
-      </div>
     </form>
 
     <form id="signup-form" class="auth-form hidden" onsubmit="handleSignup(event)">

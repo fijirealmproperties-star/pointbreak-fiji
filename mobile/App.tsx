@@ -7,6 +7,7 @@ import { ServerProvider } from "./src/context/ServerContext";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { Loading } from "./src/components/Loading";
 import { theme } from "./src/theme";
+import { loadNotificationPrefs, requestNotificationPermission } from "./src/utils/notifications";
 import type { RootStackParamList } from "./src/navigation";
 
 import { AuthScreen } from "./src/screens/rider/AuthScreen";
@@ -44,6 +45,10 @@ function Root() {
   const { user, loading } = useAuth();
   const navRef = useRef<any>(null);
   const prevUser = useRef(user);
+
+  useEffect(() => {
+    loadNotificationPrefs().then(() => requestNotificationPermission());
+  }, []);
 
   useEffect(() => {
     if (!navRef.current) return;

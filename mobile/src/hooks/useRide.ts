@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { getSocket } from "../api/socket";
+import { scheduleRideNotification, loadNotificationPrefs } from "../utils/notifications";
 import type { Provider, Ride } from "../types";
 
 export interface LiveLocation {
@@ -48,6 +49,13 @@ export function useRide(rideId: string | null) {
     const onStatus = (evt: { rideId: string; status: string }) => {
       if (evt.rideId === rideId) {
         setRide((prev) => (prev ? { ...prev, status: evt.status as Ride["status"] } : prev));
+        if (evt.status === "in_progress") {
+          scheduleRideNotification("Your driver has arrived!", "Your ride is starting now. Please head to the pickup point.", "arrival");
+        } else if (evt.status === "completed") {
+          scheduleRideNotification("Ride Complete!", "You've arrived at your destination. Thank you for riding PointBreak!", "dropoff");
+        } else if (evt.status === "accepted") {
+          scheduleRideNotification("Driver Found!", "A driver has accepted your ride request and is on the way.", "update");
+        }
       }
     };
 
