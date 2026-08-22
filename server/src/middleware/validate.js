@@ -12,7 +12,7 @@ const validate = (schema) => (req, res, next) => {
 
 const signupSchema = z.object({
   name: z.string().min(2).max(100),
-  phone: z.string().min(8).max(15),
+  phone: z.string().min(7).max(15),
   email: z.string().email().optional(),
   role: z.enum(['rider', 'driver', 'provider']).optional(),
   home_zone: z.string().optional(),
@@ -23,7 +23,7 @@ const signupSchema = z.object({
 });
 
 const loginSchema = z.object({
-  phone: z.string().min(8),
+  phone: z.string().min(7),
   password: z.string().min(4).optional(),
 });
 
