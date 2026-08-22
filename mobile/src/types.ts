@@ -114,6 +114,7 @@ export interface Ride {
   started_at?: string | null;
   completed_at?: string | null;
   provider?: Provider | null;
+  rider?: { id: string; name: string; phone: string } | null;
 }
 
 export interface ProviderStats {

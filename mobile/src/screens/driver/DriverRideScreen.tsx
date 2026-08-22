@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api } from "../../api/client";
@@ -38,6 +38,15 @@ export function DriverRideScreen() {
     } catch (e) {
       Alert.alert("Error", (e as Error).message);
     }
+  };
+
+  const callRider = () => {
+    const phone = ride?.rider?.phone;
+    if (!phone) return;
+    Alert.alert("Call passenger?", `${phone}`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Call", onPress: () => Linking.openURL(`tel:${phone}`) },
+    ]);
   };
 
   const complete = async () => {
@@ -115,6 +124,15 @@ export function DriverRideScreen() {
           size="lg"
         />
         <Text style={styles.footer}>Payment: {ride?.payment_method === "mpaisa" ? "mPaisa wallet 💳" : "cash 💵"} · Rider: {ride?.passengers ?? 1} pax</Text>
+        {ride?.rider ? (
+          <Text style={styles.riderPhone} onPress={callRider}>
+            {ride.rider.name} · {ride.rider.phone} 📞
+          </Text>
+        ) : null}
+        <View style={styles.actions}>
+          <Button title="📞 Call Passenger" onPress={callRider} variant="outline" style={styles.actionBtn} />
+          <Button title="SOS" onPress={() => Alert.alert("SOS", "Call 911 / 999 for emergencies")} variant="danger" style={styles.actionBtn} />
+        </View>
       </View>
     </View>
   );
@@ -164,4 +182,7 @@ const styles = StyleSheet.create({
   infoValue: { color: theme.text, fontSize: 15, fontWeight: "900" },
   infoLabel: { color: theme.textFaint, fontSize: 10, textTransform: "uppercase", marginTop: 3 },
   footer: { color: theme.textFaint, fontSize: 11, textAlign: "center", marginTop: 12 },
+  riderPhone: { color: theme.accentBright, fontSize: 13, fontWeight: "700", textAlign: "center", marginTop: 8 },
+  actions: { flexDirection: "row", gap: 10, marginTop: 12 },
+  actionBtn: { flex: 1 },
 });

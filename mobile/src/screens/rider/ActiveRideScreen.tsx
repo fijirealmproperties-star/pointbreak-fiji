@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api } from "../../api/client";
@@ -49,6 +49,15 @@ export function ActiveRideScreen() {
           nav.goBack();
         },
       },
+    ]);
+  };
+
+  const callDriver = () => {
+    const phone = ride?.provider?.phone;
+    if (!phone) return;
+    Alert.alert("Call driver?", `${phone}`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Call", onPress: () => Linking.openURL(`tel:${phone}`) },
     ]);
   };
 
@@ -133,7 +142,7 @@ export function ActiveRideScreen() {
                 {ride.provider.vehicle_name} · {ride.provider.vehicle_plate || "no plate"} · {ride.provider.total_rides} rides
               </Text>
             </View>
-            <Text style={styles.driverPhone}>{ride.provider.phone}</Text>
+            <Text style={styles.driverPhone} onPress={callDriver}>{ride.provider.phone} 📞</Text>
           </View>
         ) : (
           <Text style={styles.noDriver}>Assigning your captain…</Text>
@@ -147,6 +156,7 @@ export function ActiveRideScreen() {
         </View>
 
         <View style={styles.actions}>
+          <Button title="📞 Call" onPress={callDriver} variant="outline" style={styles.actionBtn} />
           <Button title="SOS" onPress={sos} variant="danger" style={styles.actionBtn} />
           {!inProgress && ride?.status !== "completed" ? (
             <Button title="Cancel ride" onPress={cancel} variant="outline" style={styles.actionBtn} />

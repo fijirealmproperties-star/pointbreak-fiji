@@ -871,6 +871,10 @@ async function startServer() {
     const r = db.prepare('SELECT * FROM rides WHERE id=?').get(req.params.id);
     if (!r) return res.status(404).json({ error: 'Not found' });
     if (r.provider_id) r.provider = db.prepare('SELECT * FROM providers WHERE id=?').get(r.provider_id);
+    if (r.rider_id) {
+      const rider = db.prepare('SELECT id, name, phone FROM users WHERE id=?').get(r.rider_id);
+      if (rider) r.rider = rider;
+    }
     res.json(r);
   });
 
