@@ -1,0 +1,27 @@
+{
+  "name": "pointbreak-captain",
+  "version": "1.0.0",
+  "description": "PointBreak Captain (Driver App)",
+  "author": "PointBreak",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable --config.win.signAndEditExecutable=false"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.pointbreak.captain",
+    "productName": "PointBreak Captain",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js"],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "../mobile/assets-driver/icon.png"
+    },
+    "asarUnpack": ["**/*"]
+  }
+}

@@ -18,6 +18,7 @@ import { Segmented } from "../../components/Segmented";
 import { api, StoredSession } from "../../api/client";
 import { theme } from "../../theme";
 import { detectCountry, toE164 } from "../../utils/phoneDetect";
+import { BUILD_TARGET } from "../../config";
 
 type Tab = "rider" | "driver";
 type Mode = "login" | "signup" | "otp";
@@ -39,7 +40,7 @@ const VEHICLE_TYPES = {
 
 export function AuthScreen() {
   const { login } = useAuth();
-  const [tab, setTab] = useState<Tab>("rider");
+  const [tab, setTab] = useState<Tab>(BUILD_TARGET as Tab);
   const [mode, setMode] = useState<Mode>("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export function AuthScreen() {
   const [vName, setVName] = useState("");
   const [vPlate, setVPlate] = useState("");
 
-  const role = tab;
+  const role = BUILD_TARGET as Tab;
 
   const finish = (data: StoredSession) => {
     login(data);
@@ -181,23 +182,19 @@ export function AuthScreen() {
             <View style={styles.logo}>
               <Text style={styles.logoEmoji}>🏄</Text>
             </View>
-            <Text style={styles.brand}>PointBreak Rides Fiji</Text>
+            <Text style={styles.brand}>
+              {BUILD_TARGET === "driver" ? "PointBreak Captain" : "PointBreak Rides Fiji"}
+            </Text>
             <Text style={styles.tagline}>
-              Ride, boat & charter across every island 🌊
+              {BUILD_TARGET === "driver"
+                ? "Earn by driving passengers across Fiji 🧭"
+                : "Ride, boat & charter across every island 🌊"}
             </Text>
           </View>
 
-          <Segmented
-            options={[
-              { value: "rider", label: "🚕 Rider" },
-              { value: "driver", label: "🧭 Driver" },
-            ]}
-            value={tab}
-            onChange={(v) => {
-              setTab(v);
-              resetMode();
-            }}
-          />
+          <Text style={styles.appLabel}>
+            {BUILD_TARGET === "driver" ? "🧭 Captain App" : "🚕 Passenger App"}
+          </Text>
 
           {mode === "otp" ? (
             <View style={styles.form}>
@@ -370,6 +367,7 @@ const styles = StyleSheet.create({
   },
   logoEmoji: { fontSize: 40 },
   brand: { color: theme.text, fontSize: 24, fontWeight: "900", letterSpacing: 0.3 },
+  appLabel: { color: theme.accentBright, fontSize: 13, fontWeight: "700", marginTop: 6, textAlign: "center", backgroundColor: theme.surfaceAlt, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6, overflow: "hidden" },
   tagline: { color: theme.textMuted, fontSize: 13, marginTop: 6 },
   sectionLabel: {
     color: theme.text,

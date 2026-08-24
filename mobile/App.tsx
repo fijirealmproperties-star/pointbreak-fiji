@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { Loading } from "./src/components/Loading";
 import { theme } from "./src/theme";
 import { loadNotificationPrefs, requestNotificationPermission } from "./src/utils/notifications";
+import { BUILD_TARGET } from "./src/config";
 import type { RootStackParamList } from "./src/navigation";
 
 import { AuthScreen } from "./src/screens/rider/AuthScreen";
@@ -59,7 +60,7 @@ function Root() {
         routes: [{ name: "Auth" }],
       });
     } else if (!prevUser.current && user) {
-      const route: keyof RootStackParamList = user.role === "driver" ? "DriverTabs" : "RiderTabs";
+      const route: keyof RootStackParamList = BUILD_TARGET === "driver" ? "DriverTabs" : "RiderTabs";
       navRef.current.reset({
         index: 0,
         routes: [{ name: route }],
@@ -71,7 +72,7 @@ function Root() {
   if (loading) return <Loading label="PointBreak Rides Fiji" />;
 
   const initialRoute: keyof RootStackParamList = user
-    ? user.role === "driver"
+    ? BUILD_TARGET === "driver"
       ? "DriverTabs"
       : "RiderTabs"
     : "Auth";
@@ -87,20 +88,28 @@ function Root() {
         }}
       >
         <Stack.Screen name="Auth" component={AuthScreen} />
-        <Stack.Screen name="RiderTabs" component={RiderTabs} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="DriverTabs" component={DriverTabs} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="RideOptions" component={RideOptionsScreen} />
-        <Stack.Screen name="Requesting" component={RequestingScreen} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="ActiveRide" component={ActiveRideScreen} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="RideComplete" component={RideCompleteScreen} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="History" component={HistoryScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Wallet" component={WalletScreen} />
-        <Stack.Screen name="Guide" component={GuideScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="DriverRide" component={DriverRideScreen} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="DriverEarnings" component={DriverEarningsScreen} />
-        <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
+        {BUILD_TARGET === "rider" && (
+          <>
+            <Stack.Screen name="RiderTabs" component={RiderTabs} options={{ gestureEnabled: false }} />
+            <Stack.Screen name="RideOptions" component={RideOptionsScreen} />
+            <Stack.Screen name="Requesting" component={RequestingScreen} options={{ gestureEnabled: false }} />
+            <Stack.Screen name="ActiveRide" component={ActiveRideScreen} options={{ gestureEnabled: false }} />
+            <Stack.Screen name="RideComplete" component={RideCompleteScreen} options={{ gestureEnabled: false }} />
+            <Stack.Screen name="History" component={HistoryScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="Wallet" component={WalletScreen} />
+            <Stack.Screen name="Guide" component={GuideScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+          </>
+        )}
+        {BUILD_TARGET === "driver" && (
+          <>
+            <Stack.Screen name="DriverTabs" component={DriverTabs} options={{ gestureEnabled: false }} />
+            <Stack.Screen name="DriverRide" component={DriverRideScreen} options={{ gestureEnabled: false }} />
+            <Stack.Screen name="DriverEarnings" component={DriverEarningsScreen} />
+            <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
