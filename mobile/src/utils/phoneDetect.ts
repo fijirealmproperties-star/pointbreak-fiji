@@ -8,7 +8,7 @@ export interface CountryCode {
 }
 
 export const COUNTRIES: CountryCode[] = [
-  { code: "FJ", dial: "+672", flag: "🇫🇯", name: "Fiji", localLengths: [7], prefixes: ["7", "8", "9"] },
+  { code: "FJ", dial: "+679", flag: "🇫🇯", name: "Fiji", localLengths: [7], prefixes: ["7", "8", "9"] },
   { code: "VU", dial: "+678", flag: "🇻🇺", name: "Vanuatu", localLengths: [7], prefixes: ["2", "3"] },
   { code: "WS", dial: "+685", flag: "🇼🇸", name: "Samoa", localLengths: [7], prefixes: ["7", "2"] },
   { code: "TO", dial: "+676", flag: "🇹🇴", name: "Tonga", localLengths: [5, 7], prefixes: ["7", "2"] },
