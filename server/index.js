@@ -465,9 +465,10 @@ async function startServer() {
   const riderSockets = new Map();
 
   io.on('connection', (socket) => {
-    socket.on('provider:join', (providerId) => {
+    socket.on('provider:join', ({ providerId, mode }) => {
       providerSockets.set(providerId, socket.id);
       socket.join(`provider:${providerId}`);
+      if (mode) socket.join(`available:${mode}`);
     });
     socket.on('rider:join', (riderId) => {
       riderSockets.set(riderId, socket.id);
@@ -765,10 +766,26 @@ async function startServer() {
 
     const rideId = uuidv4();
     db.prepare(`INSERT INTO rides (id,rider_id,provider_id,mode,status,pickup_lat,pickup_lng,pickup_name,dropoff_lat,dropoff_lng,dropoff_name,vehicle_type,price_fjd,distance_km,duration_min,surge,passengers,scheduled_time) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(rideId, rider_id, nearest?.id||null, mode, nearest?'matched':'searching', lat1, lng1, pickup_name||'', lat2, lng2, dropoff_name||'', vehicle_type, +price.toFixed(2), +dist.toFixed(2), Math.round(dur), surge, passengers||1, scheduled_time||null);
+    // Fetch rider info for the driver
+    const riderUser = db.prepare('SELECT id, name, phone FROM users WHERE id=?').get(rider_id);
+    // Broadcast to ALL available providers in this mode (not just nearest)
+    io.to(`available:${mode}`).emit('ride:new', {
+      rideId,
+      mode,
+      pickup_name: pickup_name || '',
+      dropoff_name: dropoff_name || '',
+      pickup_lat: lat1,
+      pickup_lng: lng1,
+      dropoff_lat: lat2,
+      dropoff_lng: lng2,
+      vehicle_type,
+      passengers: passengers || 1,
+      scheduled_time: scheduled_time || null,
+      price,
+      rider: riderUser ? { name: riderUser.name, phone: riderUser.phone } : null,
+    });
     if (nearest) {
       db.prepare('UPDATE providers SET available=0 WHERE id=?').run(nearest.id);
-      const sId = providerSockets.get(nearest.id);
-      if (sId) io.to(sId).emit('ride:new', { rideId, ...req.body, price });
     }
     const ride = db.prepare('SELECT * FROM rides WHERE id=?').get(rideId);
     res.json(ride);
@@ -864,6 +881,19 @@ async function startServer() {
     rows.forEach(r => {
       if (r.provider_id) r.provider = db.prepare('SELECT * FROM providers WHERE id=?').get(r.provider_id);
     });
+    res.json(rows);
+  });
+
+  // Scheduled bookings for a provider (booking calendar)
+  app.get('/api/providers/:id/bookings', (req, res) => {
+    const rows = db.prepare(`
+      SELECT r.*, u.name AS rider_name, u.phone AS rider_phone
+      FROM rides r
+      LEFT JOIN users u ON u.id = r.rider_id
+      WHERE r.provider_id=?
+      ORDER BY COALESCE(r.scheduled_time, r.created_at) DESC
+      LIMIT 100
+    `).all(req.params.id);
     res.json(rows);
   });
 

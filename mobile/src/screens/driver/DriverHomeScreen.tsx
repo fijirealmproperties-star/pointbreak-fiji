@@ -32,6 +32,13 @@ interface IncomingRide {
   mode?: string;
   vehicle_type?: string;
   price?: number;
+  pickup_lat?: number;
+  pickup_lng?: number;
+  dropoff_lat?: number;
+  dropoff_lng?: number;
+  passengers?: number;
+  scheduled_time?: string | null;
+  rider?: { name: string; phone: string } | null;
 }
 
 export function DriverHomeScreen() {
@@ -51,16 +58,17 @@ export function DriverHomeScreen() {
       setProvider(p);
       setOnline(Boolean(p.available));
       setLocation({ lat: p.lat, lng: p.lng });
+      return p;
     } catch {
       setProvider(null);
+      return null;
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       loadProvider();
-      if (user && getSocket()) getSocket()?.emit("provider:join", provider?.id);
-    }, [loadProvider, user, provider?.id]),
+    }, [loadProvider]),
   );
 
   useEffect(() => {
@@ -71,17 +79,18 @@ export function DriverHomeScreen() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!provider) return;
     const socket = connectSocket();
-    if (provider) socket.emit("provider:join", provider.id);
+    socket.emit("provider:join", { providerId: provider.id, mode: provider.mode });
     const onNewRide = (data: IncomingRide & { rideId: string }) => {
+      if (!online) return;
       setIncoming(data);
     };
     socket.on("ride:new", onNewRide);
     return () => {
       socket.off("ride:new", onNewRide);
     };
-  }, [user, provider]);
+  }, [provider, online]);
 
   const startLocationWatch = useCallback(async () => {
     const perm = await Location.requestForegroundPermissionsAsync();
@@ -226,6 +235,13 @@ export function DriverHomeScreen() {
             onPress={() => setOnline((o) => !o)}
           />
         ) : null}
+
+        <Pressable
+          onPress={() => nav.navigate("DriverBookings")}
+          style={styles.bookingBtn}
+        >
+          <Text style={styles.bookingBtnText}>📅 View booking calendar</Text>
+        </Pressable>
       </View>
 
       <Modal visible={Boolean(incoming)} transparent animationType="fade">
@@ -233,17 +249,37 @@ export function DriverHomeScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>🔔 New ride request!</Text>
             <View style={styles.modalRow}>
-              <Text style={styles.modalLabel}>Route</Text>
-              <Text style={styles.modalValue} numberOfLines={2}>
-                {incoming?.pickup_name || "Pickup"} → {incoming?.dropoff_name || "Dropoff"}
+              <Text style={styles.modalLabel}>Passenger</Text>
+              <Text style={styles.modalValue}>
+                {incoming?.rider?.name ?? "Rider"} {incoming?.rider?.phone ? `· ${incoming.rider.phone} 📞` : ""}
               </Text>
             </View>
             <View style={styles.modalRow}>
-              <Text style={styles.modalLabel}>Vehicle</Text>
-              <Text style={styles.modalValue}>
-                {incoming?.mode === "sea" ? "⛵" : "🚗"} {incoming?.vehicle_type?.replace("_", " ") ?? "-"}
+              <Text style={styles.modalLabel}>Route</Text>
+              <Text style={styles.modalValue} numberOfLines={2}>
+                📍 {incoming?.pickup_name || "Pickup"} → 🏁 {incoming?.dropoff_name || "Dropoff"}
               </Text>
             </View>
+            {incoming?.pickup_lat ? (
+              <View style={styles.modalRow}>
+                <Text style={styles.modalLabel}>Pickup GPS</Text>
+                <Text style={styles.modalValue}>
+                  {incoming.pickup_lat.toFixed(4)}, {incoming.pickup_lng?.toFixed(4)}
+                </Text>
+              </View>
+            ) : null}
+            <View style={styles.modalRow}>
+              <Text style={styles.modalLabel}>Vehicle</Text>
+              <Text style={styles.modalValue}>
+                {incoming?.mode === "sea" ? "⛵" : "🚗"} {incoming?.vehicle_type?.replace("_", " ") ?? "-"} · {incoming?.passengers ?? 1} pax
+              </Text>
+            </View>
+            {incoming?.scheduled_time ? (
+              <View style={styles.modalRow}>
+                <Text style={styles.modalLabel}>Scheduled</Text>
+                <Text style={styles.modalValue}>📅 {new Date(incoming.scheduled_time).toLocaleString()}</Text>
+              </View>
+            ) : null}
             <View style={styles.modalRow}>
               <Text style={styles.modalLabel}>Fare</Text>
               <Text style={styles.modalValue}>{fjd(incoming?.price)}</Text>
@@ -308,4 +344,13 @@ const styles = StyleSheet.create({
   modalValue: { color: theme.text, fontSize: 13, fontWeight: "600", flex: 1 },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 14 },
   modalBtn: { flex: 1 },
+  bookingBtn: {
+    backgroundColor: theme.surfaceAlt,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  bookingBtnText: { color: theme.accentBright, fontSize: 14, fontWeight: "700", textAlign: "center" },
 });

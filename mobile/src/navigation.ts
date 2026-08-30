@@ -26,6 +26,7 @@ export type RootStackParamList = {
   DriverRequest: { rideId: string };
   DriverRide: { rideId: string };
   DriverEarnings: undefined;
+  DriverBookings: undefined;
   DriverProfile: undefined;
 };
 
@@ -39,5 +40,6 @@ export type RiderTabParamList = {
 export type DriverTabParamList = {
   DriverHome: undefined;
   DriverEarnings: undefined;
+  DriverBookings: undefined;
   DriverProfile: undefined;
 };

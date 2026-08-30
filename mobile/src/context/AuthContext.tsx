@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(session.user as User);
     await setJson("session", session);
     const sock = connectSocket();
-    sock.emit(session.user.role === "driver" ? "provider:join" : "rider:join", session.user.id);
+    sock.emit("rider:join", session.user.id);
   }, []);
 
   const logout = useCallback(async () => {

@@ -25,6 +25,7 @@ import { GuideScreen } from "./src/screens/rider/GuideScreen";
 import { SettingsScreen } from "./src/screens/rider/SettingsScreen";
 import { DriverRideScreen } from "./src/screens/driver/DriverRideScreen";
 import { DriverEarningsScreen } from "./src/screens/driver/DriverEarningsScreen";
+import { BookingCalendarScreen } from "./src/screens/driver/BookingCalendarScreen";
 import { DriverProfileScreen } from "./src/screens/driver/DriverProfileScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -107,6 +108,7 @@ function Root() {
             <Stack.Screen name="DriverTabs" component={DriverTabs} options={{ gestureEnabled: false }} />
             <Stack.Screen name="DriverRide" component={DriverRideScreen} options={{ gestureEnabled: false }} />
             <Stack.Screen name="DriverEarnings" component={DriverEarningsScreen} />
+            <Stack.Screen name="DriverBookings" component={BookingCalendarScreen} />
             <Stack.Screen name="DriverProfile" component={DriverProfileScreen} />
           </>
         )}
