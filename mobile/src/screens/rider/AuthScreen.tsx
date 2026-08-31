@@ -39,7 +39,7 @@ const VEHICLE_TYPES = {
 } as const;
 
 export function AuthScreen() {
-  const { login } = useAuth();
+  const { login, keepSignedIn, setKeepSignedIn } = useAuth();
   const [tab, setTab] = useState<Tab>(BUILD_TARGET as Tab);
   const [mode, setMode] = useState<Mode>("login");
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ export function AuthScreen() {
   const role = BUILD_TARGET as Tab;
 
   const finish = (data: StoredSession) => {
-    login(data);
+    login(data, keepSignedIn);
   };
 
   const doLogin = async () => {
@@ -240,6 +240,15 @@ export function AuthScreen() {
                 placeholder="Your password"
                 secureTextEntry
               />
+              <Pressable
+                onPress={() => setKeepSignedIn(!keepSignedIn)}
+                style={styles.keepRow}
+              >
+                <View style={[styles.checkbox, keepSignedIn && styles.checkboxOn]}>
+                  {keepSignedIn ? <Text style={styles.checkMark}>✓</Text> : null}
+                </View>
+                <Text style={styles.keepLabel}>Keep me signed in</Text>
+              </Pressable>
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <Button title="Log in" onPress={doLogin} loading={loading} size="lg" />
               <Pressable onPress={sendOtp} style={styles.linkBtn}>
@@ -288,6 +297,15 @@ export function AuthScreen() {
                 placeholder="Create a password"
                 secureTextEntry
               />
+              <Pressable
+                onPress={() => setKeepSignedIn(!keepSignedIn)}
+                style={styles.keepRow}
+              >
+                <View style={[styles.checkbox, keepSignedIn && styles.checkboxOn]}>
+                  {keepSignedIn ? <Text style={styles.checkMark}>✓</Text> : null}
+                </View>
+                <Text style={styles.keepLabel}>Keep me signed in</Text>
+              </Pressable>
               {tab === "driver" ? (
                 <>
                   <Text style={styles.sectionLabel}>Your vehicle</Text>
@@ -416,4 +434,36 @@ const styles = StyleSheet.create({
   chipText: { color: theme.textMuted, fontSize: 12, fontWeight: "600" },
   chipTextActive: { color: "#fff" },
   footer: { textAlign: "center", color: theme.textFaint, fontSize: 11, marginTop: 24 },
+  keepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+    paddingVertical: 2,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: theme.textFaint,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.surfaceAlt,
+  },
+  checkboxOn: {
+    backgroundColor: theme.accent,
+    borderColor: theme.accent,
+  },
+  checkMark: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "900",
+    lineHeight: 15,
+  },
+  keepLabel: {
+    color: theme.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });

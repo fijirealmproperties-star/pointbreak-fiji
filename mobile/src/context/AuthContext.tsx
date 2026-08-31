@@ -8,14 +8,16 @@ import React, {
 } from "react";
 import { api, setAccessToken, setRefreshToken, StoredSession } from "../api/client";
 import { connectSocket, disconnectSocket } from "../api/socket";
-import { getJson, removeItem, setJson } from "../storage";
+import { getItem, getJson, removeItem, setJson, setItem } from "../storage";
 import type { User } from "../types";
 
 interface AuthContextValue {
   user: User | null;
   accessToken: string | null;
   loading: boolean;
-  login: (session: StoredSession) => Promise<void>;
+  keepSignedIn: boolean;
+  setKeepSignedIn: (value: boolean) => Promise<void>;
+  login: (session: StoredSession, remember?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (user: User) => Promise<void>;
 }
@@ -26,11 +28,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [keepSignedIn, setKeepSignedInState] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const session = await getJson<StoredSession>("session");
-      if (session?.accessToken && session.user) {
+      const keep = await getItem("keepSignedIn");
+      const keepValue = keep === null ? true : keep === "true";
+      setKeepSignedInState(keepValue);
+      const session = keepValue ? await getJson<StoredSession>("session") : null;
+      if (keepValue && session?.accessToken && session.user) {
         setAccessToken(session.accessToken);
         setRefreshToken(session.refreshToken);
         setAccessTokenState(session.accessToken);
@@ -42,15 +48,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  const login = useCallback(async (session: StoredSession) => {
-    setAccessToken(session.accessToken);
-    setRefreshToken(session.refreshToken);
-    setAccessTokenState(session.accessToken);
-    setUser(session.user as User);
-    await setJson("session", session);
-    const sock = connectSocket();
-    sock.emit("rider:join", session.user.id);
-  }, []);
+  const login = useCallback(
+    async (session: StoredSession, remember = true) => {
+      setAccessToken(session.accessToken);
+      setRefreshToken(session.refreshToken);
+      setAccessTokenState(session.accessToken);
+      setUser(session.user as User);
+      if (remember) {
+        await setJson("session", session);
+      } else {
+        await removeItem("session");
+      }
+      const sock = connectSocket();
+      sock.emit("rider:join", session.user.id);
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     setAccessToken(null);
@@ -69,9 +82,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setKeepSignedIn = useCallback(async (value: boolean) => {
+    setKeepSignedInState(value);
+    await setItem("keepSignedIn", String(value));
+  }, []);
+
   const value = useMemo(
-    () => ({ user, accessToken, loading, login, logout, updateProfile }),
-    [user, accessToken, loading, login, logout, updateProfile],
+    () => ({
+      user,
+      accessToken,
+      loading,
+      keepSignedIn,
+      setKeepSignedIn,
+      login,
+      logout,
+      updateProfile,
+    }),
+    [user, accessToken, loading, keepSignedIn, setKeepSignedIn, login, logout, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

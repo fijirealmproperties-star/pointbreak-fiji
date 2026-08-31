@@ -6,6 +6,7 @@ const KEYS = {
   profile: "pbrf:profile",
   driverLocation: "pbrf:driverLocation",
   onboarded: "pbrf:onboarded",
+  keepSignedIn: "pbrf:keepSignedIn",
 } as const;
 
 export async function getItem(key: keyof typeof KEYS): Promise<string | null> {
