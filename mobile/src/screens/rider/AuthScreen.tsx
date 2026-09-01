@@ -50,6 +50,7 @@ export function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [devCode, setDevCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -132,6 +133,8 @@ export function AuthScreen() {
     try {
       const e164 = toE164(phone, detectedCountry);
       const data = await api.post<{ _dev_code?: string }>("/api/auth/otp/send", { phone: e164 });
+      setDevCode(data._dev_code ?? "");
+      setCode(data._dev_code ?? code);
       setOtpSent(true);
       setError(null);
     } catch (e) {
@@ -180,6 +183,8 @@ export function AuthScreen() {
     try {
       const e164 = toE164(phone, detectedCountry);
       const data = await api.post<{ _dev_code?: string }>("/api/auth/otp/send", { phone: e164 });
+      setDevCode(data._dev_code ?? "");
+      setResetCode(data._dev_code ?? resetCode);
       setResetCodeSent(true);
       setError(null);
     } catch (e) {
@@ -253,6 +258,15 @@ export function AuthScreen() {
               <Text style={styles.sectionLabel}>
                 Verify {detectedCountry.flag} {detectedCountry.dial} {phone}
               </Text>
+              {devCode ? (
+                <View style={styles.devCodeCard}>
+                  <Text style={styles.devCodeLabel}>Your verification code</Text>
+                  <Text style={styles.devCodeValue}>{devCode}</Text>
+                  <Text style={styles.devCodeHint}>
+                    This is a dev code. In production it arrives by SMS.
+                  </Text>
+                </View>
+              ) : null}
               <Input
                 value={code}
                 onChangeText={setCode}
@@ -297,6 +311,12 @@ export function AuthScreen() {
                 />
               ) : (
                 <>
+                  {devCode ? (
+                    <View style={styles.devCodeCard}>
+                      <Text style={styles.devCodeLabel}>Your verification code</Text>
+                      <Text style={styles.devCodeValue}>{devCode}</Text>
+                    </View>
+                  ) : null}
                   <Input
                     label="Verification code"
                     value={resetCode}
@@ -576,5 +596,33 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 14,
     fontWeight: "600",
+  },
+  devCodeCard: {
+    backgroundColor: theme.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.accent,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  devCodeLabel: {
+    color: theme.textMuted,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  devCodeValue: {
+    color: theme.text,
+    fontSize: 30,
+    fontWeight: "900",
+    letterSpacing: 4,
+    marginTop: 4,
+  },
+  devCodeHint: {
+    color: theme.textFaint,
+    fontSize: 11,
+    marginTop: 6,
+    textAlign: "center",
   },
 });
