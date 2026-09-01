@@ -21,7 +21,7 @@ import { detectCountry, toE164 } from "../../utils/phoneDetect";
 import { BUILD_TARGET } from "../../config";
 
 type Tab = "rider" | "driver";
-type Mode = "login" | "signup" | "otp";
+type Mode = "login" | "signup" | "otp" | "reset";
 
 const VEHICLE_TYPES = {
   land: [
@@ -51,6 +51,9 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [resetCodeSent, setResetCodeSent] = useState(false);
 
   const detectedCountry = useMemo(() => detectCountry(phone), [phone]);
 
@@ -167,6 +170,55 @@ export function AuthScreen() {
     setError(null);
   };
 
+  const sendResetCode = async () => {
+    setError(null);
+    if (!phone) {
+      setError("Enter your phone number first.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const e164 = toE164(phone, detectedCountry);
+      const data = await api.post<{ _dev_code?: string }>("/api/auth/otp/send", { phone: e164 });
+      setResetCodeSent(true);
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const doResetPassword = async () => {
+    setError(null);
+    if (!resetCode) {
+      setError("Enter the 6-digit code sent to your phone.");
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setError("New password must be at least 6 characters.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const e164 = toE164(phone, detectedCountry);
+      await api.post("/api/auth/reset-password", {
+        phone: e164,
+        code: resetCode,
+        password: newPassword,
+      });
+      setMode("login");
+      setResetCodeSent(false);
+      setResetCode("");
+      setNewPassword("");
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -217,6 +269,62 @@ export function AuthScreen() {
                 <Text style={styles.link}>← Back</Text>
               </Pressable>
             </View>
+          ) : mode === "reset" ? (
+            <View style={styles.form}>
+              <Text style={styles.sectionLabel}>
+                Reset password via {detectedCountry.flag} {detectedCountry.dial}{" "}
+                {phone || "your phone"}
+              </Text>
+              <View style={styles.countryRow}>
+                <Text style={styles.countryBadge}>
+                  {detectedCountry.flag} {detectedCountry.dial}
+                </Text>
+                <Text style={styles.countryName}>{detectedCountry.name}</Text>
+              </View>
+              <Input
+                label="Phone"
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="e.g. 712 3456"
+                keyboardType="phone-pad"
+              />
+              {!resetCodeSent ? (
+                <Button
+                  title="Send verification code"
+                  onPress={sendResetCode}
+                  loading={loading}
+                  size="lg"
+                />
+              ) : (
+                <>
+                  <Input
+                    label="Verification code"
+                    value={resetCode}
+                    onChangeText={setResetCode}
+                    placeholder="6-digit code"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                  <Input
+                    label="New password"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="At least 6 characters"
+                    secureTextEntry
+                  />
+                  {error ? <Text style={styles.error}>{error}</Text> : null}
+                  <Button
+                    title="Set new password"
+                    onPress={doResetPassword}
+                    loading={loading}
+                    size="lg"
+                  />
+                </>
+              )}
+              <Pressable onPress={() => setMode("login")} style={styles.linkBtn}>
+                <Text style={styles.link}>← Back to login</Text>
+              </Pressable>
+            </View>
           ) : mode === "login" ? (
             <View style={styles.form}>
               <Text style={styles.sectionLabel}>Welcome back</Text>
@@ -253,6 +361,9 @@ export function AuthScreen() {
               <Button title="Log in" onPress={doLogin} loading={loading} size="lg" />
               <Pressable onPress={sendOtp} style={styles.linkBtn}>
                 <Text style={styles.link}>Use phone OTP instead</Text>
+              </Pressable>
+              <Pressable onPress={() => setMode("reset")} style={styles.linkBtn}>
+                <Text style={styles.link}>Forgot password?</Text>
               </Pressable>
               <Pressable onPress={() => setMode("signup")} style={styles.linkBtn}>
                 <Text style={styles.link}>New here? Create account</Text>

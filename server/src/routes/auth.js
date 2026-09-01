@@ -129,6 +129,24 @@ module.exports = (db) => {
     }
   });
 
+  // Reset password (OTP verified)
+  router.post('/reset-password', async (req, res) => {
+    const { phone, code, password } = req.body;
+    if (!phone || !code || !password) {
+      return res.status(400).json({ error: 'Phone, code and new password required' });
+    }
+    if (!code || code.length !== 6) {
+      return res.status(401).json({ error: 'Invalid OTP code' });
+    }
+    const user = db.prepare('SELECT * FROM users WHERE phone=?').get(phone);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hashedPassword, user.id);
+    logEvent({ type: 'password_reset', userId: user.id, phone });
+    res.json({ success: true, message: 'Password updated. You can now log in.' });
+  });
+
   // Profile
   router.get('/profile', (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.user?.userId);
