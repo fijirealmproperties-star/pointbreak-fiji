@@ -137,6 +137,15 @@ export function AuthScreen() {
       setCode(data._dev_code ?? code);
       setOtpSent(true);
       setError(null);
+      // Auto-verify with the returned dev code for a seamless dev experience.
+      if (data._dev_code) {
+        const verifyData = await api.post<StoredSession>(
+          "/api/auth/otp/verify",
+          { phone: e164, code: data._dev_code },
+        );
+        finish(verifyData);
+        return;
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
