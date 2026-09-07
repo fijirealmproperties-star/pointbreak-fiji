@@ -24,10 +24,10 @@ function normalizePhone(phone) {
   return digits;
 }
 
-async function sendTemplate(phone, templateName, componentParams) {
+async function sendTemplate(phone, templateName, componentParams, languageOverride) {
   const url = `${BASE_URL}/${GRAPH_VERSION}/${process.env.WA_PHONE_NUMBER_ID}/messages`;
   const to = normalizePhone(phone);
-  const language = process.env.WA_TEMPLATE_LANGUAGE || 'en';
+  const language = languageOverride || process.env.WA_TEMPLATE_LANGUAGE || 'en';
 
   const body = {
     messaging_product: 'whatsapp',
@@ -85,7 +85,8 @@ async function sendOtp(phone, code) {
     // and surface a warning.
     if (err.status === 412 || (err.payload && err.payload.error && err.payload.error.fbtrace_id)) {
       try {
-        await sendTemplate(phone, 'hello_world');
+        // hello_world (bundled with the API) uses en_US language.
+        await sendTemplate(phone, 'hello_world', undefined, 'en_US');
         console.warn('[whatsapp] custom OTP template unavailable; sent hello_world instead');
         return true;
       } catch (fallbackErr) {

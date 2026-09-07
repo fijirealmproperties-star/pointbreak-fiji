@@ -13,3 +13,9 @@ services:
         generateValue: true
       - key: NODE_ENV
         value: production
+      - key: WA_PHONE_NUMBER_ID
+        value: 936478228925706
+      - key: WA_ACCESS_TOKEN
+        value: RCy6vn9rbHTOHBR1mhjvi4KOb-s
+      - key: WA_TEMPLATE_LANGUAGE
+        value: en
