@@ -24,7 +24,7 @@ const signupSchema = z.object({
 
 const loginSchema = z.object({
   phone: z.string().min(7),
-  password: z.string().min(4).optional(),
+  password: z.string().min(4),
 });
 
 const rideSchema = z.object({

@@ -5,11 +5,33 @@ const { generateTokens, verifyRefreshToken } = require('../config/jwt');
 const { validate, signupSchema, loginSchema } = require('../middleware/validate');
 const { loginLimiter } = require('../middleware/rateLimiter');
 const { logEvent } = require('../middleware/audit');
+const { authMiddleware } = require('../middleware/auth');
 const { sendOtp: sendOtpWhatsApp, configured: whatsappConfigured } = require('../services/whatsapp');
 
 const router = express.Router();
 
 module.exports = (db) => {
+  // In-memory OTP store (phone -> { code, expiresAt }). Codes expire after OTP_TTL.
+  const OTP_TTL_MS = parseInt(process.env.OTP_TTL_MS || '300000', 10);
+  const otpStore = new Map();
+
+  const issueOtp = (phone) => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStore.set(phone, { code, expiresAt: Date.now() + OTP_TTL_MS });
+    return code;
+  };
+
+  const verifyOtpCode = (phone, code) => {
+    const entry = otpStore.get(phone);
+    if (!entry) return false;
+    if (Date.now() > entry.expiresAt) {
+      otpStore.delete(phone);
+      return false;
+    }
+    const ok = entry.code === code;
+    if (ok) otpStore.delete(phone);
+    return ok;
+  };
   // Signup
   router.post('/signup', loginLimiter, validate(signupSchema), async (req, res) => {
     try {
@@ -86,7 +108,7 @@ module.exports = (db) => {
   router.post('/otp/send', (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Phone required' });
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = issueOtp(phone);
     logEvent({ type: 'otp_sent', phone, channel: whatsappConfigured() ? 'whatsapp' : 'dev' });
 
     // Always return the code so the app can show/auto-verify it, regardless of
@@ -106,28 +128,26 @@ module.exports = (db) => {
     });
   });
 
-  // OTP Verify (mock)
+  // OTP Verify
   router.post('/otp/verify', (req, res) => {
     const { phone, code } = req.body;
     if (!phone || !code) return res.status(400).json({ error: 'Phone and code required' });
-    // In production: verify against stored OTP
-    if (code === '123456' || code.length === 6) {
-      let user = db.prepare('SELECT * FROM users WHERE phone=?').get(phone);
-      if (!user) {
-        const id = uuidv4();
-        db.prepare('INSERT INTO users (id, name, phone, role) VALUES (?,?,?,?)')
-          .run(id, 'New User', phone, 'rider');
-        user = db.prepare('SELECT * FROM users WHERE id=?').get(id);
-      }
-      const tokens = generateTokens(user.id, user.role);
-      logEvent({ type: 'otp_verified', userId: user.id, phone });
-      res.json({
-        user: { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role },
-        ...tokens,
-      });
-    } else {
-      return res.status(401).json({ error: 'Invalid OTP code' });
+    if (!verifyOtpCode(phone, code)) {
+      return res.status(401).json({ error: 'Invalid or expired OTP code' });
     }
+    let user = db.prepare('SELECT * FROM users WHERE phone=?').get(phone);
+    if (!user) {
+      const id = uuidv4();
+      db.prepare('INSERT INTO users (id, name, phone, role) VALUES (?,?,?,?)')
+        .run(id, 'New User', phone, 'rider');
+      user = db.prepare('SELECT * FROM users WHERE id=?').get(id);
+    }
+    const tokens = generateTokens(user.id, user.role);
+    logEvent({ type: 'otp_verified', userId: user.id, phone });
+    res.json({
+      user: { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role },
+      ...tokens,
+    });
   });
 
   // Refresh token
@@ -149,8 +169,8 @@ module.exports = (db) => {
     if (!phone || !code || !password) {
       return res.status(400).json({ error: 'Phone, code and new password required' });
     }
-    if (!code || code.length !== 6) {
-      return res.status(401).json({ error: 'Invalid OTP code' });
+    if (!verifyOtpCode(phone, code)) {
+      return res.status(401).json({ error: 'Invalid or expired OTP code' });
     }
     const user = db.prepare('SELECT * FROM users WHERE phone=?').get(phone);
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -162,24 +182,24 @@ module.exports = (db) => {
   });
 
   // Profile
-  router.get('/profile', (req, res) => {
+  router.get('/profile', authMiddleware, (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.user?.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role });
   });
 
   // Update profile
-  router.put('/profile', (req, res) => {
+  router.put('/profile', authMiddleware, (req, res) => {
     const { name, email } = req.body;
     const userId = req.user?.userId;
-    if (name) db.prepare('UPDATE users SET name=? WHERE id=?').run(name, userId);
-    if (email) db.prepare('UPDATE users SET email=? WHERE id=?').run(email, userId);
+    if (req.user && name) db.prepare('UPDATE users SET name=? WHERE id=?').run(name, userId);
+    if (req.user && email) db.prepare('UPDATE users SET email=? WHERE id=?').run(email, userId);
     const user = db.prepare('SELECT * FROM users WHERE id=?').get(userId);
     res.json({ id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role });
   });
 
   // Biometric register
-  router.post('/biometric/register', (req, res) => {
+  router.post('/biometric/register', authMiddleware, (req, res) => {
     const { biometricId } = req.body;
     const userId = req.user?.userId;
     db.prepare('UPDATE users SET biometric_id=? WHERE id=?').run(biometricId, userId);

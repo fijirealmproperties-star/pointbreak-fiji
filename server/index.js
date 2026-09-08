@@ -8,7 +8,7 @@ const path = require('path');
 
 const { apiLimiter } = require('./src/middleware/rateLimiter');
 const { authMiddleware } = require('./src/middleware/auth');
-const { auditMiddleware } = require('./src/middleware/audit');
+const { auditMiddleware, logEvent } = require('./src/middleware/audit');
 
 const PORT = process.env.PORT || 3001;
 

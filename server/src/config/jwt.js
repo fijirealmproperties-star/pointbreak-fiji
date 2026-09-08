@@ -1,7 +1,12 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'safe-taxis-fiji-secret-key-change-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'safe-taxis-fiji-refresh-secret-change-in-production';
+const isProd = process.env.NODE_ENV === 'production';
+const JWT_SECRET = process.env.JWT_SECRET || (isProd ? null : 'safe-taxis-fiji-secret-key-change-in-production');
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (isProd ? null : 'safe-taxis-fiji-refresh-secret-change-in-production');
+
+if (isProd && (!JWT_SECRET || !JWT_REFRESH_SECRET)) {
+  throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be set in production');
+}
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '30d';
 
