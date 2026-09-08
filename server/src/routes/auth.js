@@ -105,25 +105,35 @@ module.exports = (db) => {
   });
 
   // OTP Send
-  router.post('/otp/send', (req, res) => {
+  router.post('/otp/send', async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Phone required' });
     const code = issueOtp(phone);
-    logEvent({ type: 'otp_sent', phone, channel: whatsappConfigured() ? 'whatsapp' : 'dev' });
 
     // Always return the code so the app can show/auto-verify it, regardless of
     // whether WhatsApp delivery is configured or succeeds.
+    let delivered = false;
     if (whatsappConfigured()) {
-      sendOtpWhatsApp(phone, code).catch((err) => {
+      try {
+        delivered = await sendOtpWhatsApp(phone, code);
+      } catch (err) {
         console.error(`[otp/send] WhatsApp delivery failed: ${err.message}`);
-      });
+      }
+      logEvent({ type: 'otp_sent', phone, channel: delivered ? 'whatsapp' : 'whatsapp_failed' });
+      console.log(
+        delivered
+          ? `[otp/send] OTP sent via WhatsApp to ${phone}`
+          : `📱 OTP for ${phone}: ${code} (WhatsApp delivery failed — dev code exposed)`
+      );
     } else {
+      logEvent({ type: 'otp_sent', phone, channel: 'dev' });
       console.log(`📱 OTP for ${phone}: ${code} (dev mode — no WhatsApp configured)`);
     }
 
     res.json({
       success: true,
-      message: whatsappConfigured() ? 'OTP sent via WhatsApp' : 'OTP generated',
+      message: delivered ? 'OTP sent via WhatsApp' : 'OTP generated',
+      delivered,
       _dev_code: code,
     });
   });
